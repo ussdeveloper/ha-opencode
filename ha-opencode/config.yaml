@@ -1,0 +1,68 @@
+name: "OpenCode Terminal"
+version: "0.1.0"
+slug: "ha-opencode"
+description: >-
+  Terminal webowy z pełnym zestawem narzędzi deweloperskich, Docker CLI
+  i OpenCode AI. Dostęp do konfiguracji Home Assistant, zarządzanie
+  kontenerami add-onów przez docker.sock, automatyczny start OpenCode.
+url: "https://github.com/ussdeveloper/ha-opencode"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+
+# ── HA/Supervisor integration ──────────────────────────────────
+homeassistant_api: true
+hassio_api: true
+docker_api: true
+host_network: false
+apparmor: false
+
+# ── Ingress (panel boczny) ─────────────────────────────────────
+ingress: true
+ingress_port: 7681
+panel_icon: mdi:console-line
+panel_title: OpenCode
+panel_admin: false
+
+# ── Startup ────────────────────────────────────────────────────
+startup: application
+boot: auto
+init: false
+
+# ── Stage ──────────────────────────────────────────────────────
+stage: experimental
+
+# ── Ports ────────────────────────────────────────────────────
+ports:
+  7681/tcp: null
+ports_description:
+  7681/tcp: "Web terminal (ttyd)"
+
+# ── Mapped folders ─────────────────────────────────────────────
+map:
+  - config:rw
+  - ssl:ro
+  - share:rw
+  - backup:rw
+  - media:rw
+  - addons:ro
+
+# ── Privileged access ──────────────────────────────────────────
+privileged:
+  - SYS_PTRACE
+
+# ── Options (defaults) ────────────────────────────────────────
+options:
+  terminal_password: ""
+  opencode_auto_start: true
+  opencode_workspace: "/config"
+  opencode_model: ""
+
+# ── Schema (validation) ────────────────────────────────────────
+schema:
+  terminal_password: "password?"
+  opencode_auto_start: "bool"
+  opencode_workspace: "str"
+  opencode_model: "str?"
