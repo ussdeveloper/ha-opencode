@@ -293,31 +293,36 @@ setup_opencode_config() {
     local config_dir="/root/.config/opencode"
     mkdir -p "$config_dir"
 
-    # ── AGENTS.md (auto-discovered by OpenCode as project rules) ──
+    # ── AGENTS.md ──────────────────────────────────────────────
+    # Write to BOTH locations so OpenCode can auto-discover rules:
+    #  - /config/AGENTS.md  ← project root (auto-discovered first)
+    #  - ~/.config/opencode/AGENTS.md ← global fallback
     if [ -n "$OPENCODE_RULES" ]; then
-        echo "$OPENCODE_RULES" > "$config_dir/AGENTS.md"
-        echo "[INFO] OpenCode rules: custom (from add-on config)"
+        echo "$OPENCODE_RULES" | tee "$config_dir/AGENTS.md" > "/config/AGENTS.md"
+        echo "[INFO] OpenCode rules: custom → /config/AGENTS.md + $config_dir/AGENTS.md"
     else
-        write_default_agents_md > "$config_dir/AGENTS.md"
-        echo "[INFO] OpenCode rules: built-in HA-aware defaults"
+        write_default_agents_md | tee "$config_dir/AGENTS.md" > "/config/AGENTS.md"
+        echo "[INFO] OpenCode rules: built-in defaults → /config/AGENTS.md + $config_dir/AGENTS.md"
     fi
 
     # ── System prompt ──────────────────────────────────────────
     if [ -n "$OPENCODE_SYSTEM_PROMPT" ]; then
         echo "$OPENCODE_SYSTEM_PROMPT" > "$config_dir/system-prompt.md"
-        echo "[INFO] OpenCode system prompt: custom"
+        echo "[INFO] OpenCode system prompt: custom → $config_dir/system-prompt.md"
     else
         write_default_system_prompt > "$config_dir/system-prompt.md"
-        echo "[INFO] OpenCode system prompt: built-in HA-aware default"
+        echo "[INFO] OpenCode system prompt: built-in default → $config_dir/system-prompt.md"
     fi
 
     # ── Custom instructions (always optional, user-only) ───────
     if [ -n "$OPENCODE_INSTRUCTIONS" ]; then
         echo "$OPENCODE_INSTRUCTIONS" > "$config_dir/custom-instructions.md"
-        echo "[INFO] OpenCode custom instructions written"
+        echo "[INFO] OpenCode custom instructions → $config_dir/custom-instructions.md"
     fi
 
-    # ── opencode.json (always generated – references system prompt + optional custom instructions) ──
+    # ── opencode.json ──────────────────────────────────────────
+    # Generated in BOTH global config dir AND workspace root so
+    # OpenCode finds it regardless of CWD.
     local instructions_json="[\"$config_dir/system-prompt.md\""
     if [ -n "$OPENCODE_INSTRUCTIONS" ]; then
         instructions_json="$instructions_json,\"$config_dir/custom-instructions.md\""
@@ -329,7 +334,9 @@ setup_opencode_config() {
   "instructions": $instructions_json
 }
 JSONEOF
-    echo "[INFO] OpenCode config: $config_dir/opencode.json"
+    # Also write to workspace root (/config) for project-level discovery
+    cp "$config_dir/opencode.json" "/config/opencode.json" 2>/dev/null || true
+    echo "[INFO] OpenCode config: $config_dir/opencode.json + /config/opencode.json"
 }
 
 setup_opencode_config

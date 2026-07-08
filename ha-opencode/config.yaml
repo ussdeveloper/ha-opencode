@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.9"
+version: "0.1.10"
 slug: "ha-opencode"
 description: >-
   Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.

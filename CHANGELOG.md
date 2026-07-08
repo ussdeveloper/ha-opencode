@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.10] – 2026-07-08
+
+### Fixed
+- **AGENTS.md now written to workspace root `/config/`** – OpenCode auto-discovers rules at project root
+- **opencode.json copied to `/config/`** – ensures OpenCode finds config regardless of working directory
+- Rules and system prompt correctly loaded by OpenCode on every session startup
+- Files written to both `/root/.config/opencode/` (global) and `/config/` (workspace) for maximum discoverability
+
 ## [0.1.9] – 2026-07-08
 
 ### Added
@@ -111,6 +119,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.10]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.6...v0.1.7
