@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.20] – 2026-07-08
+
+### Fixed
+- **All possible opencode state paths now persisted on volume** – added 5 symlinks
+- New paths covered: `~/.local/share/opencode/` and `~/.cache/opencode/`
+- Diagnostic dump at startup shows all symlink targets for debugging
+- Total 5 paths linked to /data/: .opencode, .config/opencode, .local/share/opencode, .cache/opencode, workspace/.opencode
+
 ## [0.1.19] – 2026-07-08
 
 ### Fixed
@@ -179,6 +187,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.20]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.16...v0.1.17

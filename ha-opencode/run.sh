@@ -55,17 +55,19 @@ setup_opencode_persistence() {
     local persistent="/data/opencode"
     local persistent_config="/data/opencode-config"
     local persistent_ws="/data/opencode-workspace"
+    local persistent_local="/data/opencode-local"
+    local persistent_cache="/data/opencode-cache"
 
-    mkdir -p "$persistent" "$persistent_config" "$persistent_ws"
+    mkdir -p "$persistent" "$persistent_config" "$persistent_ws" "$persistent_local" "$persistent_cache"
 
-    # ── ~/.opencode → /data/opencode (global session state, history) ──
+    # ── ~/.opencode → /data/opencode ────────────────────────────
     if [ -d /root/.opencode ] && [ ! -L /root/.opencode ]; then
         cp -a /root/.opencode/. "$persistent"/ 2>/dev/null || true
         rm -rf /root/.opencode
     fi
     ln -sf "$persistent" /root/.opencode 2>/dev/null || true
 
-    # ── ~/.config/opencode → /data/opencode-config (AGENTS.md, opencode.json) ──
+    # ── ~/.config/opencode → /data/opencode-config ─────────────
     if [ -d /root/.config/opencode ] && [ ! -L /root/.config/opencode ]; then
         cp -a /root/.config/opencode/. "$persistent_config"/ 2>/dev/null || true
         rm -rf /root/.config/opencode
@@ -73,17 +75,35 @@ setup_opencode_persistence() {
     mkdir -p /root/.config 2>/dev/null || true
     ln -sf "$persistent_config" /root/.config/opencode 2>/dev/null || true
 
-    # ── $WORKSPACE/.opencode → /data/opencode-workspace (project-level sessions) ──
+    # ── ~/.local/share/opencode → /data/opencode-local ─────────
+    mkdir -p /root/.local/share 2>/dev/null || true
+    if [ -d /root/.local/share/opencode ] && [ ! -L /root/.local/share/opencode ]; then
+        cp -a /root/.local/share/opencode/. "$persistent_local"/ 2>/dev/null || true
+        rm -rf /root/.local/share/opencode
+    fi
+    ln -sf "$persistent_local" /root/.local/share/opencode 2>/dev/null || true
+
+    # ── ~/.cache/opencode → /data/opencode-cache ────────────────
+    mkdir -p /root/.cache 2>/dev/null || true
+    if [ -d /root/.cache/opencode ] && [ ! -L /root/.cache/opencode ]; then
+        cp -a /root/.cache/opencode/. "$persistent_cache"/ 2>/dev/null || true
+        rm -rf /root/.cache/opencode
+    fi
+    ln -sf "$persistent_cache" /root/.cache/opencode 2>/dev/null || true
+
+    # ── $WORKSPACE/.opencode → /data/opencode-workspace ────────
     if [ -d "$OPENCODE_WORKSPACE/.opencode" ] && [ ! -L "$OPENCODE_WORKSPACE/.opencode" ]; then
         cp -a "$OPENCODE_WORKSPACE/.opencode/." "$persistent_ws"/ 2>/dev/null || true
         rm -rf "$OPENCODE_WORKSPACE/.opencode"
     fi
     ln -sf "$persistent_ws" "$OPENCODE_WORKSPACE/.opencode" 2>/dev/null || true
 
-    echo "[INFO] OpenCode state persisted across 3 locations → /data/ (volume)"
-    echo "       Global  : $persistent"
-    echo "       Config  : $persistent_config"
-    echo "       Workspace: $persistent_ws (linked from $OPENCODE_WORKSPACE/.opencode)"
+    # ── Dump all symlinks for diagnostics ──────────────────────
+    echo "[INFO] OpenCode persistence – all paths → /data/ (volume):"
+    find /root -maxdepth 4 -name ".opencode" -o -name "opencode" -type l 2>/dev/null | while read -r link; do
+        echo "       $link → $(readlink "$link")"
+    done
+    echo "       $OPENCODE_WORKSPACE/.opencode → $(readlink "$OPENCODE_WORKSPACE/.opencode" 2>/dev/null || echo 'n/a')"
 }
 setup_opencode_persistence
 
