@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.24] – 2026-07-08
+
+### Fixed
+- **"local: can only be used in a function" syntax error** – removed `local` keyword from `auto` variable in opencode-terminal.sh (declared outside function scope)
+- Tmux session now launches correctly without shell parsing errors
+
+## [0.1.23] – 2026-07-08
+
+### Added
+- **CHANGELOG.md copied to add-on directory** – HA Supervisor now detects changelog for in-app display
+
 ## [0.1.22] – 2026-07-08
 
 ### Added
