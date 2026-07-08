@@ -64,12 +64,18 @@ while true; do
         echo "→ Creating new OpenCode session..."
         cd "$WORKSPACE" 2>/dev/null || cd /config || true
 
-        # Build opencode command
+        # Build opencode command with --continue fallback
+        # After container restart, --continue may fail (no prior session).
+        # Fall back to a fresh opencode session if --continue exits non-zero.
         OPENCODE_CMD="opencode"
         if [ -n "$MODEL" ]; then
             OPENCODE_CMD="$OPENCODE_CMD --model $MODEL"
         fi
-        OPENCODE_CMD="$OPENCODE_CMD --continue"
+
+        # Run command: try --continue, if it fails → fresh start
+        FULL_CMD='echo "→ Trying to continue previous session..."'
+        FULL_CMD="$FULL_CMD; $OPENCODE_CMD --continue || { echo ''; echo '→ No previous session – starting fresh...'; sleep 1; $OPENCODE_CMD; }"
+        FULL_CMD="$FULL_CMD; echo ''; echo 'OpenCode exited. Press Enter to restart...'; read"
 
         # Create detached tmux session running opencode
         if tmux new-session -d -s "$SESSION" \
@@ -77,7 +83,7 @@ while true; do
             -e "LANG=$LANG" \
             -e "LC_ALL=$LC_ALL" \
             -e "TERM=$TERM" \
-            "$OPENCODE_CMD; echo ''; echo 'OpenCode exited. Press Enter to restart...'; read" \
+            bash -c "$FULL_CMD" \
             2>/dev/null; then
             echo "→ Session created. Attaching now..."
             if tmux attach-session -t "$SESSION" 2>/dev/null; then

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.16] – 2026-07-08
+
+### Fixed
+- **opencode --continue after HA restart** – now falls back to fresh session when no prior session exists
+- Tmux command rewritten with `--continue || fresh` pattern: if continue fails, opencode starts clean
+- Fixes blank/dead terminal after container restart when previous session state is lost
+
 ## [0.1.15] – 2026-07-08
 
 ### Changed
@@ -151,6 +158,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.16]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.12...v0.1.13
