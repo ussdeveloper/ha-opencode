@@ -42,6 +42,16 @@ mkdir -p "$OPENCODE_WORKSPACE" /data/logs
 export OPENCODE_WORKSPACE
 export OPENCODE_MODEL
 
+# ── Host filesystem access ──────────────────────────────────
+# With host_pid:true, /proc/1/root exposes the HA OS host root
+# filesystem. Symlink /host → /proc/1/root for easy access.
+if [ -d /proc/1/root ]; then
+    ln -sf /proc/1/root /host 2>/dev/null || true
+    echo "[INFO] Host root accessible at /host"
+else
+    echo "[WARN] /proc/1/root not available – host access limited"
+fi
+
 # ── Default OpenCode rules (HA-aware AGENTS.md) ────────────
 # Generated when the user does not provide custom opencode_rules.
 write_default_agents_md() {
@@ -152,13 +162,57 @@ Since `/addons` is now writable:
 3. `docker build` to test the image locally
 4. Register via Supervisor API or it auto-detects from `/addons/`
 
-## Host-level operations (use with caution)
-- **Check host processes**: `ps aux` (host PID namespace visible)
-- **Network config**: `ip addr`, `ip route` (host network stack)
-- **D-Bus services**: `dbus-send --system ...` or `gdbus`
-- **System logs**: `journalctl` (if available)
-- **Restart Supervisor**: `docker restart hassio_supervisor`
-- **Restart host services**: via D-Bus or docker
+## Host-level operations – direct HA OS access
+Since you run in a **privileged container with host_pid**, you can execute
+commands directly on the Home Assistant OS host using `nsenter`.
+
+### Key tools
+| Command | Purpose |
+|---------|---------|
+| `host-shell <cmd...>` | Run a single command on the HA OS host |
+| `ha-host` | Open an **interactive shell** on the HA OS host |
+| `host` | Alias for `host-shell` |
+| `/host/` | Symlink to the host root filesystem |
+
+### How it works
+`host-shell` uses `nsenter -t 1 -m -u -i -n -p` to enter the host's PID 1
+(init/systemd) namespaces: mount, UTS, IPC, network, and PID. This gives you
+the same environment as logging into the HA OS console directly.
+
+### Examples
+```bash
+# Run HA CLI on the host
+host-shell ha core check
+host-shell ha core restart
+
+# Check host OS info
+host-shell cat /etc/os-release
+host-shell uname -a
+
+# Manage host services via systemd
+host-shell systemctl status home-assistant
+host-shell systemctl restart hassio-supervisor
+
+# Access host filesystem directly
+ls /host/etc/
+cat /host/etc/hassio.json
+host-shell docker ps           # host's Docker (Supervisor-managed)
+
+# Open an interactive host shell
+ha-host
+# (type 'exit' to return to the container)
+```
+
+### When to use host-shell vs container commands
+- **Use `host-shell`** for: HA CLI, systemd, host OS inspection, Supervisor-level ops
+- **Use container commands** (`docker`, `ha-cli`) for: add-on management, container-level Docker ops
+- **Use `/host/` path** for reading host files directly without spawning a shell
+
+### Important
+- `host-shell` runs commands as **root on the HA OS host** – be extremely careful
+- Changes made via host-shell affect the real HA OS, not just the container
+- The host filesystem is accessible read-write via `/host/` – do not modify
+  system files without explicit user confirmation and a backup plan
 
 ## Supervisor API – full reference
 ```bash
@@ -187,7 +241,8 @@ You are an AI coding assistant running inside **ha-opencode**, a Home Assistant
 add-on container with **full unrestricted host access** (privileged, host network,
 host PID, host D-Bus, Docker socket, Supervisor API). You can manage every aspect
 of the Home Assistant system: configuration, add-ons (install/remove/build),
-host services, and networking.
+host services, and networking. You have a direct **host shell channel** via
+`nsenter` (`host-shell` / `ha-host`) to run commands on the HA OS host itself.
 
 Your primary role is to help the user manage, configure, and extend their
 Home Assistant smart home system with complete freedom.
@@ -196,6 +251,8 @@ Home Assistant smart home system with complete freedom.
 - Read, write, and validate Home Assistant configuration files (YAML)
 - **Install, uninstall, start, stop, restart, and rebuild add-ons** via Supervisor API and Docker
 - **Build custom local add-ons** from source in `/addons/`
+- **Execute commands directly on the HA OS host** via `host-shell` / `ha-host` (nsenter)
+- **Access the host filesystem** at `/host/` (symlink to host root)
 - Query Supervisor API for system info, add-on status, store, network, and hardware
 - Access host processes, D-Bus services, and network configuration
 - Edit automations, scripts, scenes, dashboards, and integrations

@@ -27,6 +27,7 @@ RUN apk add --no-cache \
     ca-certificates openssl \
     libwebsockets json-c \
     build-base musl-dev \
+    util-linux \
     && rm -rf /var/cache/apk/*
 
 # ── Python tools ─────────────────────────────────────────────
@@ -71,6 +72,9 @@ RUN echo 'alias ll="ls -la --color=auto"'   >> /etc/bash/bashrc && \
     echo 'alias oc="opencode"'               >> /etc/bash/bashrc && \
     echo 'alias oca="opencode-attach"'       >> /etc/bash/bashrc && \
     echo 'alias oc-log="tail -f /data/opencode.log"' >> /etc/bash/bashrc && \
+    echo 'alias host="host-shell"'            >> /etc/bash/bashrc && \
+    echo 'alias ha-host="ha-host"'            >> /etc/bash/bashrc && \
+    echo 'alias host-root="ls /host/"'        >> /etc/bash/bashrc && \
     echo 'export OPENCODE_WORKSPACE=/config' >> /etc/bash/bashrc && \
     echo 'export PS1='\''\n\[\033[1;36m\]ha-opencode\[\033[0m\] \[\033[1;33m\]\w\[\033[0m\]\n\[\033[1;32m\]$\[\033[0m\] '\' >> /etc/bash/bashrc; \
     echo 'cd /config' >> /etc/bash/bashrc

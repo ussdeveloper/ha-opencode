@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5] – 2026-07-08
+
+### Added
+- **Direct host shell channel** – `host-shell` and `ha-host` scripts using `nsenter` to execute commands on the HA OS host from within the container
+- `util-linux` package (provides `nsenter` for host namespace entry)
+- `/host` symlink → `/proc/1/root` for direct host filesystem access
+- New shell aliases: `host` (host-shell), `ha-host`, `host-root`
+- Default AGENTS.md extended with comprehensive host shell documentation, usage examples, and when-to-use guidance
+- Default system prompt updated with host command execution capability
+
 ## [0.1.4] – 2026-07-08
 
 ### Changed
@@ -61,6 +71,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.5]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.1...v0.1.2
