@@ -76,8 +76,16 @@ RUN echo 'alias ll="ls -la --color=auto"'   >> /etc/bash/bashrc && \
     echo 'alias ha-host="ha-host"'            >> /etc/bash/bashrc && \
     echo 'alias host-root="ls /host/"'        >> /etc/bash/bashrc && \
     echo 'export OPENCODE_WORKSPACE=/config' >> /etc/bash/bashrc && \
+    echo 'export LANG=C.UTF-8'               >> /etc/bash/bashrc && \
+    echo 'export LC_ALL=C.UTF-8'             >> /etc/bash/bashrc && \
+    echo 'export TERM=xterm-256color'        >> /etc/bash/bashrc && \
     echo 'export PS1='\''\n\[\033[1;36m\]ha-opencode\[\033[0m\] \[\033[1;33m\]\w\[\033[0m\]\n\[\033[1;32m\]$\[\033[0m\] '\' >> /etc/bash/bashrc; \
     echo 'cd /config' >> /etc/bash/bashrc
+
+# ── Locale / encoding defaults ───────────────────────────────
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV TERM=xterm-256color
 
 # ── Entrypoint ───────────────────────────────────────────────
 COPY run.sh /run.sh

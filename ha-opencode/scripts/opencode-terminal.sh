@@ -17,6 +17,11 @@ MODEL="${OPENCODE_MODEL:-}"
 FAIL_COUNT=0
 MAX_FAILS=5
 
+# ── Locale & terminal encoding ───────────────────────────────
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export TERM="${TERM:-xterm-256color}"
+
 # Ensure workspace exists
 mkdir -p "$WORKSPACE" 2>/dev/null || true
 cd "$WORKSPACE" 2>/dev/null || cd /config || true
@@ -69,6 +74,9 @@ while true; do
         # Create detached tmux session running opencode
         if tmux new-session -d -s "$SESSION" \
             -e "OPENCODE_WORKSPACE=$WORKSPACE" \
+            -e "LANG=$LANG" \
+            -e "LC_ALL=$LC_ALL" \
+            -e "TERM=$TERM" \
             "$OPENCODE_CMD; echo ''; echo 'OpenCode exited. Press Enter to restart...'; read" \
             2>/dev/null; then
             echo "→ Session created. Attaching now..."

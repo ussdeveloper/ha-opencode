@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.8] – 2026-07-08
+
+### Fixed
+- **Character encoding issues in tmux/ttyd sessions** – added proper locale and terminal configuration
+- `LANG=C.UTF-8` and `LC_ALL=C.UTF-8` set in Dockerfile, run.sh, and opencode-terminal.sh
+- `TERM=xterm-256color` set for proper terminal emulation and color support
+- Tmux sessions now inherit locale and TERM from parent environment
+- Bashrc exports locale vars so interactive shells get correct encoding
+
 ## [0.1.7] – 2026-07-08
 
 ### Added
@@ -92,6 +101,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.8]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.4...v0.1.5
