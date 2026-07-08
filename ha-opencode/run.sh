@@ -47,6 +47,35 @@ mkdir -p "$OPENCODE_WORKSPACE" /data/logs
 export OPENCODE_WORKSPACE
 export OPENCODE_MODEL
 
+# ── Persist OpenCode state on /data volume ──────────────────
+# Without this, opencode session data lives in ~/.opencode/ which
+# is inside the ephemeral container – it dies on every restart.
+# Symlinking to /data/ (HA add-on persistent volume) fixes this.
+setup_opencode_persistence() {
+    local persistent="/data/opencode"
+    local persistent_config="/data/opencode-config"
+
+    mkdir -p "$persistent" "$persistent_config"
+
+    # ── ~/.opencode → /data/opencode (session state, history) ──
+    if [ -d /root/.opencode ] && [ ! -L /root/.opencode ]; then
+        cp -a /root/.opencode/. "$persistent"/ 2>/dev/null || true
+        rm -rf /root/.opencode
+    fi
+    ln -sf "$persistent" /root/.opencode 2>/dev/null || true
+
+    # ── ~/.config/opencode → /data/opencode-config (AGENTS.md, opencode.json) ──
+    if [ -d /root/.config/opencode ] && [ ! -L /root/.config/opencode ]; then
+        cp -a /root/.config/opencode/. "$persistent_config"/ 2>/dev/null || true
+        rm -rf /root/.config/opencode
+    fi
+    mkdir -p /root/.config 2>/dev/null || true
+    ln -sf "$persistent_config" /root/.config/opencode 2>/dev/null || true
+
+    echo "[INFO] OpenCode state persisted at $persistent + $persistent_config"
+}
+setup_opencode_persistence
+
 # ── Host filesystem access ──────────────────────────────────
 # With host_pid:true, /proc/1/root exposes the HA OS host root
 # filesystem. Symlink /host → /proc/1/root for easy access.

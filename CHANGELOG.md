@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.17] – 2026-07-08
+
+### Fixed
+- **OpenCode session state now persists across container restarts** – `~/.opencode/` and `~/.config/opencode/` symlinked to `/data/` volume
+- Added `setup_opencode_persistence()` in run.sh – migrates existing state, creates symlinks to persistent storage
+- Session history, config, and AI context survive add-on restarts and HA reboots
+- `--continue` flag now works correctly across restarts because state is preserved
+
 ## [0.1.16] – 2026-07-08
 
 ### Fixed
@@ -158,6 +166,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.17]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.13...v0.1.14
