@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.18] – 2026-07-08
+
+### Changed
+- Minor polish – ready for testing
+
 ## [0.1.17] – 2026-07-08
 
 ### Fixed
@@ -166,6 +171,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.18]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.14...v0.1.15
