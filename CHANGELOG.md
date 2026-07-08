@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.21] – 2026-07-08
+
+### Changed
+- Added `--auto` flag to opencode launch (auto-accept, non-interactive mode)
+
 ## [0.1.20] – 2026-07-08
 
 ### Fixed
@@ -187,6 +192,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.21]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.17...v0.1.18

@@ -2,7 +2,7 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
-[![Version](https://img.shields.io/badge/version-0.1.20-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.21-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
 
 <p align="center">
   <img src="screenshots/opencode-terminal.png" alt="OpenCode Terminal in Home Assistant" width="800">
