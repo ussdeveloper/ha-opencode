@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.24] – 2026-07-08
+
+### Fixed
+- **Syntax error: `local` used outside function** – removed from auto flag variable
+- Fixed "unbound variable" crash on opencode-terminal.sh startup
+
 ## [0.1.23] – 2026-07-08
 
 ### Fixed
@@ -204,6 +210,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.24]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.20...v0.1.21

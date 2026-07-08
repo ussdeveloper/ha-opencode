@@ -74,7 +74,7 @@ while true; do
         fi
 
         # Build auto flag if enabled
-        local auto=""
+        auto=""
         if [ "$AUTO_FLAG" = "true" ]; then auto=" --auto"; fi
 
         # Run command: try --continue, if it fails → fresh start
@@ -102,7 +102,7 @@ while true; do
                 echo "   Starting opencode directly in this terminal..."
                 echo ""
                 FAIL_COUNT=0
-                local auto=""
+                auto=""
                 if [ "$AUTO_FLAG" = "true" ]; then auto=" --auto"; fi
                 exec $OPENCODE_CMD$auto
             fi
