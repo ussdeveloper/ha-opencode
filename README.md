@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.14-green)](https://github.com/ussdeveloper/ha-opencode)
 
 <p align="center">
-  <img src="screenshots/opencode-panel.png" alt="OpenCode Terminal in Home Assistant sidebar" width="800">
+  <img src="screenshots/opencode-terminal.png" alt="OpenCode Terminal in Home Assistant" width="800">
 </p>
 
 **AI-powered terminal for Home Assistant** – full dev environment with OpenCode AI coding agent, available as an add-on in the sidebar panel. Unrestricted host access, SSH, add-on management, and more.
