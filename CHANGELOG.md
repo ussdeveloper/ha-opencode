@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] – 2026-07-08
+
+### Added
+- **Built-in default AGENTS.md** – comprehensive HA-aware ruleset auto-generated when `opencode_rules` is not set. Covers mounted paths, available tools, add-on management, config editing workflow, safety rules, and Supervisor API usage.
+- **Built-in default system prompt** – teaches OpenCode it's running inside ha-opencode, its capabilities, guiding principles, and safe response style.
+- **Always-on opencode.json** – generated on every startup (even without custom options), always references the system-prompt.md for consistent context.
+- Safety directives: backup-before-edit, validate-before-restart, incremental changes, modern HA syntax preference.
+- Environment awareness: full path table, tool catalog, Supervisor API quick reference.
+
+### Changed
+- `setup_opencode_config()` now always writes AGENTS.md and system-prompt.md – user options override the built-in defaults rather than leaving files absent.
+- `opencode.json` is always generated (not only when custom options are set).
+
 ## [0.1.2] – 2026-07-08
 
 ### Added
@@ -36,6 +49,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.3]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ussdeveloper/ha-opencode/releases/tag/v0.1.0

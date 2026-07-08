@@ -2,7 +2,7 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
-[![Version](https://img.shields.io/badge/version-0.1.2-green)](https://github.com/ussdeveloper/ha-opencode)
+[![Version](https://img.shields.io/badge/version-0.1.3-green)](https://github.com/ussdeveloper/ha-opencode)
 
 **Web terminal with a full dev toolchain and OpenCode AI**, available as a Home Assistant add-on in the sidebar panel.
 
