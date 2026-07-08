@@ -57,6 +57,37 @@ else
     echo "[WARN] /proc/1/root not available – host access limited"
 fi
 
+# ── SSH key bootstrap ───────────────────────────────────────
+# Generate an SSH key pair and push the public key to the
+# HA OS host's authorized_keys so ssh-host works seamlessly.
+setup_ssh_keys() {
+    local ssh_dir="/root/.ssh"
+    mkdir -p "$ssh_dir"
+    chmod 700 "$ssh_dir"
+
+    if [ ! -f "$ssh_dir/id_ed25519" ]; then
+        echo "[INFO] Generating SSH key pair..."
+        ssh-keygen -t ed25519 -f "$ssh_dir/id_ed25519" -N "" -C "ha-opencode" -q
+    fi
+
+    # Push public key to host's authorized_keys via nsenter
+    if [ -f "$ssh_dir/id_ed25519.pub" ] && [ -d /proc/1/root ]; then
+        echo "[INFO] Pushing SSH public key to host authorized_keys..."
+        local pubkey
+        pubkey=$(cat "$ssh_dir/id_ed25519.pub")
+        nsenter -t 1 -m -u -i -n -p -- /bin/sh -c "
+            mkdir -p /root/.ssh
+            chmod 700 /root/.ssh
+            if ! grep -qF '$pubkey' /root/.ssh/authorized_keys 2>/dev/null; then
+                echo '$pubkey' >> /root/.ssh/authorized_keys
+                chmod 600 /root/.ssh/authorized_keys
+            fi
+        " 2>/dev/null && echo "[OK]   SSH key installed on host" || \
+            echo "[WARN] Could not push SSH key to host – ssh-host may need manual setup"
+    fi
+}
+setup_ssh_keys
+
 # ── Default OpenCode rules (HA-aware AGENTS.md) ────────────
 # Generated when the user does not provide custom opencode_rules.
 write_default_agents_md() {
@@ -177,7 +208,25 @@ commands directly on the Home Assistant OS host using `nsenter`.
 | `host-shell <cmd...>` | Run a single command on the HA OS host |
 | `ha-host` | Open an **interactive shell** on the HA OS host |
 | `host` | Alias for `host-shell` |
+| `ssh-host` | **SSH into the HA OS host** (port 22222, key-based auth) |
+| `ssh-host <cmd>` | Run a single command via SSH on the host |
 | `/host/` | Symlink to the host root filesystem |
+
+### SSH access (ssh-host)
+The container auto-generates an SSH key pair on first start and pushes the public
+key to the host's `/root/.ssh/authorized_keys` via nsenter. After that, you can:
+```bash
+ssh-host                  # Interactive SSH shell on the host
+ssh-host ha core check    # Run a command via SSH
+ssh-host docker ps        # Host's Docker (Supervisor-managed)
+```
+SSH connection defaults: `root@172.30.32.1:22222` (standard HA OS SSH port).
+Override with env vars: `SSH_HOST`, `SSH_PORT`, `SSH_USER`.
+
+### When to use which host access method
+- **`host-shell` / `ha-host` (nsenter)**: fastest, no network, works even if SSH is down
+- **`ssh-host` (SSH)**: standard protocol, familiar tooling, works with scp/sftp
+- **`/host/` path**: read host files directly without spawning a shell
 
 ### How it works
 `host-shell` uses `nsenter -t 1 -m -u -i -n -p` to enter the host's PID 1
@@ -256,7 +305,7 @@ Home Assistant smart home system with complete freedom.
 - Read, write, and validate Home Assistant configuration files (YAML)
 - **Install, uninstall, start, stop, restart, and rebuild add-ons** via Supervisor API and Docker
 - **Build custom local add-ons** from source in `/addons/`
-- **Execute commands directly on the HA OS host** via `host-shell` / `ha-host` (nsenter)
+- **Execute commands directly on the HA OS host** via `host-shell` / `ha-host` (nsenter) and `ssh-host` (SSH, port 22222)
 - **Access the host filesystem** at `/host/` (symlink to host root)
 - Query Supervisor API for system info, add-on status, store, network, and hardware
 - Access host processes, D-Bus services, and network configuration

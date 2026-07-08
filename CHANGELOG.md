@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.11] – 2026-07-08
+
+### Added
+- **`ssh-host` script** – SSH from the container directly into the HA OS host (port 22222)
+- **Auto SSH key bootstrap** – on first start, generates ed25519 key pair and pushes public key to host's authorized_keys via nsenter
+- SSH defaults: root@172.30.32.1:22222, configurable via SSH_HOST/SSH_PORT/SSH_USER env vars
+- `ssh-host` alias in shell for quick access
+
+### Changed
+- AGENTS.md and system prompt updated with SSH documentation and usage examples
+- Three host access methods now documented: nsenter (fast), SSH (standard protocol), /host/ (filesystem)
+
 ## [0.1.10] – 2026-07-08
 
 ### Fixed
@@ -119,6 +131,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.11]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.7...v0.1.8

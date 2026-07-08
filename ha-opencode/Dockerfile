@@ -75,6 +75,7 @@ RUN echo 'alias ll="ls -la --color=auto"'   >> /etc/bash/bashrc && \
     echo 'alias host="host-shell"'            >> /etc/bash/bashrc && \
     echo 'alias ha-host="ha-host"'            >> /etc/bash/bashrc && \
     echo 'alias host-root="ls /host/"'        >> /etc/bash/bashrc && \
+    echo 'alias ssh-host="ssh-host"'          >> /etc/bash/bashrc && \
     echo 'export OPENCODE_WORKSPACE=/config' >> /etc/bash/bashrc && \
     echo 'export LANG=C.UTF-8'               >> /etc/bash/bashrc && \
     echo 'export LC_ALL=C.UTF-8'             >> /etc/bash/bashrc && \

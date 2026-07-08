@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.10"
+version: "0.1.11"
 slug: "ha-opencode"
 description: >-
   Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
@@ -93,7 +93,7 @@ options:
     - Read, write, and validate Home Assistant configuration files (YAML)
     - Install, uninstall, start, stop, restart, and rebuild add-ons via Supervisor API and Docker
     - Build custom local add-ons from source in /addons/
-    - Execute commands directly on the HA OS host via host-shell / ha-host (nsenter)
+    - Execute commands directly on the HA OS host via host-shell / ha-host (nsenter) and ssh-host (SSH, port 22222)
     - Access the host filesystem at /host/ (symlink to host root)
     - Query Supervisor API for system info, add-on status, store, network, and hardware
     - Access host processes, D-Bus services, and network configuration
