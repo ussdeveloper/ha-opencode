@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] – 2026-07-08
+
+### Added
+- **Default rules and system prompt now visible in add-on configuration** – no more hidden defaults
+- `opencode_system_prompt` pre-filled with full HA-aware system prompt (capabilities, principles, response style)
+- `opencode_rules` pre-filled with condensed environment rules (paths, tools, safety rules, Supervisor API quick reference)
+- Users can see and edit these directly in the HA add-on config UI or YAML editor
+
+### Changed
+- Built-in fallback defaults in `run.sh` still apply when fields are explicitly cleared to empty string
+
 ## [0.1.6] – 2026-07-08
 
 ### Fixed
@@ -81,6 +92,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.7]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.3...v0.1.4
