@@ -14,6 +14,7 @@ set -u
 SESSION="opencode"
 WORKSPACE="${OPENCODE_WORKSPACE:-/config}"
 MODEL="${OPENCODE_MODEL:-}"
+AUTO_FLAG="${OPENCODE_AUTO_FLAG:-false}"
 FAIL_COUNT=0
 MAX_FAILS=5
 
@@ -72,9 +73,13 @@ while true; do
             OPENCODE_CMD="$OPENCODE_CMD --model $MODEL"
         fi
 
-        # Run command: try --continue --auto, if it fails → fresh start
+        # Build auto flag if enabled
+        local auto=""
+        if [ "$AUTO_FLAG" = "true" ]; then auto=" --auto"; fi
+
+        # Run command: try --continue, if it fails → fresh start
         FULL_CMD='echo "→ Trying to continue previous session..."'
-        FULL_CMD="$FULL_CMD; $OPENCODE_CMD --continue --auto || { echo ''; echo '→ No previous session – starting fresh...'; sleep 1; $OPENCODE_CMD --auto; }"
+        FULL_CMD="$FULL_CMD; $OPENCODE_CMD --continue$auto || { echo ''; echo '→ No previous session – starting fresh...'; sleep 1; $OPENCODE_CMD$auto; }"
         FULL_CMD="$FULL_CMD; echo ''; echo 'OpenCode exited. Press Enter to restart...'; read"
 
         # Create detached tmux session running opencode
@@ -97,7 +102,9 @@ while true; do
                 echo "   Starting opencode directly in this terminal..."
                 echo ""
                 FAIL_COUNT=0
-                exec $OPENCODE_CMD --auto
+                local auto=""
+                if [ "$AUTO_FLAG" = "true" ]; then auto=" --auto"; fi
+                exec $OPENCODE_CMD$auto
             fi
         else
             echo "→ Failed to create tmux session – retrying..."

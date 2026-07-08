@@ -31,6 +31,7 @@ if [ -f "$OPTS" ]; then
     OPENCODE_SYSTEM_PROMPT=$(jq -r '.opencode_system_prompt // ""' "$OPTS")
     OPENCODE_RULES=$(jq -r '.opencode_rules // ""' "$OPTS")
     OPENCODE_INSTRUCTIONS=$(jq -r '.opencode_instructions // ""' "$OPTS")
+    OPENCODE_AUTO_FLAG=$(jq -r '.opencode_auto_flag // false' "$OPTS")
 else
     echo "[WARN] /data/options.json not found – using defaults"
     TERMINAL_PASSWORD=""
@@ -40,12 +41,14 @@ else
     OPENCODE_SYSTEM_PROMPT=""
     OPENCODE_RULES=""
     OPENCODE_INSTRUCTIONS=""
+    OPENCODE_AUTO_FLAG="false"
 fi
 
 # ── Ensure workspace exists ──────────────────────────────────
 mkdir -p "$OPENCODE_WORKSPACE" /data/logs
 export OPENCODE_WORKSPACE
 export OPENCODE_MODEL
+export OPENCODE_AUTO_FLAG
 
 # ── Persist OpenCode state on /data volume ──────────────────
 # Without this, opencode session data lives in ~/.opencode/ which
