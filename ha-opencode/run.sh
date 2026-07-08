@@ -228,6 +228,55 @@ curl -s -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" \
   http://supervisor/addons/<slug>/uninstall
 ```
 
+## Installing add-ons from the HA OS host (via ha CLI)
+You can manage add-ons directly from the HA OS host using `host-shell ha ...`.
+This is the **recommended method** for adding repositories and installing add-ons
+because it integrates properly with the Supervisor.
+
+```bash
+# Add a custom add-on repository
+host-shell ha addons repository add https://github.com/ussdeveloper/ha-opencode
+
+# List configured repositories
+host-shell ha addons repository list
+
+# Remove a repository
+host-shell ha addons repository remove <repo-url>
+
+# List available add-ons from all repositories
+host-shell ha addons list
+
+# Get info about a specific add-on
+host-shell ha addons info <slug>
+
+# Install an add-on by slug (e.g. "ha-opencode")
+host-shell ha addons install <slug>
+
+# Update an add-on to the latest version
+host-shell ha addons update <slug>
+
+# Update all add-ons
+host-shell ha addons update --all
+
+# Start / stop / restart an add-on
+host-shell ha addons start <slug>
+host-shell ha addons stop <slug>
+host-shell ha addons restart <slug>
+
+# Rebuild a local add-on (after modifying source in /addons/)
+host-shell ha addons rebuild <slug>
+
+# View add-on logs
+host-shell ha addons logs <slug>
+
+# Uninstall an add-on
+host-shell ha addons uninstall <slug>
+```
+
+**Note:** The `ha` CLI on the host communicates with the Supervisor directly,
+so changes are properly tracked in HA's state. Always prefer `host-shell ha addons ...`
+over raw Docker commands for add-on lifecycle management.
+
 ## How to modify Home Assistant configuration
 1. **Backup first**: `backup-config /config/configuration.yaml`
 2. **Edit**: `vim /config/configuration.yaml` or use python/yq/jq for programmatic changes

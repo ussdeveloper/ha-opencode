@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.25] – 2026-07-08
+
+### Added
+- **Add-on management via host `ha` CLI** – detailed instructions in default rules/system prompt for installing, updating, and managing add-ons from the HA OS host using `host-shell ha addons ...`
+- Repository management: `host-shell ha addons repository add|list|remove`
+- Proper Supervisor integration path documented as recommended method
+
 ## [0.1.24] – 2026-07-08
 
 ### Fixed

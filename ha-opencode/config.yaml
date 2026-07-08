@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.24"
+version: "0.1.25"
 slug: "ha-opencode"
 description: >-
   AI-powered terminal for Home Assistant – full dev environment + OpenCode AI
@@ -141,10 +141,25 @@ options:
     backup-config [file] – Backup a config file before editing
     docker, git, python3, node, jq, yq, curl, vim, tmux
 
-    ## Adding & removing add-ons
-    - Install: Supervisor API or ha addons install <slug>
-    - Uninstall: Supervisor API or ha addons uninstall <slug>
-    - Build local: clone into /addons/<slug>/, docker build, register via Supervisor
+    ## Installing & managing add-ons via host ha CLI (recommended)
+    Use `host-shell ha addons ...` for proper Supervisor integration:
+    # Add/remove a repository
+    host-shell ha addons repository add <url>
+    host-shell ha addons repository list
+    host-shell ha addons repository remove <url>
+    # List all available add-ons
+    host-shell ha addons list
+    # Install / update
+    host-shell ha addons install <slug>
+    host-shell ha addons update <slug>
+    host-shell ha addons update --all
+    # Start / stop / restart / logs
+    host-shell ha addons start|stop|restart|logs <slug>
+    # Rebuild a local add-on (after modifying source in /addons/)
+    host-shell ha addons rebuild <slug>
+    # Uninstall
+    host-shell ha addons uninstall <slug>
+    # Alternatively use Supervisor API + Docker directly (see below)
 
     ## Config editing workflow
     1. backup-config /config/configuration.yaml
