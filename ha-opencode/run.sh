@@ -23,12 +23,18 @@ if [ -f "$OPTS" ]; then
     OPENCODE_AUTO_START=$(jq -r '.opencode_auto_start // true' "$OPTS")
     OPENCODE_WORKSPACE=$(jq -r '.opencode_workspace // "/config"' "$OPTS")
     OPENCODE_MODEL=$(jq -r '.opencode_model // ""' "$OPTS")
+    OPENCODE_SYSTEM_PROMPT=$(jq -r '.opencode_system_prompt // ""' "$OPTS")
+    OPENCODE_RULES=$(jq -r '.opencode_rules // ""' "$OPTS")
+    OPENCODE_INSTRUCTIONS=$(jq -r '.opencode_instructions // ""' "$OPTS")
 else
     echo "[WARN] /data/options.json not found – using defaults"
     TERMINAL_PASSWORD=""
     OPENCODE_AUTO_START="true"
     OPENCODE_WORKSPACE="/config"
     OPENCODE_MODEL=""
+    OPENCODE_SYSTEM_PROMPT=""
+    OPENCODE_RULES=""
+    OPENCODE_INSTRUCTIONS=""
 fi
 
 # ── Ensure workspace exists ──────────────────────────────────
@@ -36,17 +42,70 @@ mkdir -p "$OPENCODE_WORKSPACE" /data/logs
 export OPENCODE_WORKSPACE
 export OPENCODE_MODEL
 
-# ── Setup opencode config (first run) ────────────────────────
-if [ ! -d "/root/.opencode" ]; then
-    echo "[INFO] First run – initializing OpenCode config directory"
-    mkdir -p /root/.opencode
-fi
+# ── Setup OpenCode config files ─────────────────────────────
+# Generates AGENTS.md and opencode.json from add-on options so
+# users can customize system prompts, rules, and instructions
+# directly from the Home Assistant add-on configuration.
+setup_opencode_config() {
+    local config_dir="/root/.config/opencode"
+    mkdir -p "$config_dir"
+
+    # ── AGENTS.md (auto-discovered by OpenCode as project rules) ──
+    if [ -n "$OPENCODE_RULES" ]; then
+        echo "$OPENCODE_RULES" > "$config_dir/AGENTS.md"
+        echo "[INFO] OpenCode rules written to $config_dir/AGENTS.md"
+    fi
+
+    # ── System prompt ──────────────────────────────────────────
+    if [ -n "$OPENCODE_SYSTEM_PROMPT" ]; then
+        echo "$OPENCODE_SYSTEM_PROMPT" > "$config_dir/system-prompt.md"
+        echo "[INFO] OpenCode system prompt written to $config_dir/system-prompt.md"
+    fi
+
+    # ── Custom instructions ────────────────────────────────────
+    if [ -n "$OPENCODE_INSTRUCTIONS" ]; then
+        echo "$OPENCODE_INSTRUCTIONS" > "$config_dir/custom-instructions.md"
+        echo "[INFO] OpenCode custom instructions written to $config_dir/custom-instructions.md"
+    fi
+
+    # ── opencode.json (references instruction files) ───────────
+    if [ -n "$OPENCODE_SYSTEM_PROMPT" ] || [ -n "$OPENCODE_INSTRUCTIONS" ]; then
+        local instructions_json="["
+        local first=true
+
+        if [ -n "$OPENCODE_SYSTEM_PROMPT" ]; then
+            instructions_json="$instructions_json\"$config_dir/system-prompt.md\""
+            first=false
+        fi
+
+        if [ -n "$OPENCODE_INSTRUCTIONS" ]; then
+            if [ "$first" = false ]; then
+                instructions_json="$instructions_json,"
+            fi
+            instructions_json="$instructions_json\"$config_dir/custom-instructions.md\""
+        fi
+
+        instructions_json="$instructions_json]"
+
+        cat > "$config_dir/opencode.json" << JSONEOF
+{
+  "instructions": $instructions_json
+}
+JSONEOF
+        echo "[INFO] OpenCode config written to $config_dir/opencode.json"
+    fi
+}
+
+setup_opencode_config
 
 # ── Log configuration ────────────────────────────────────────
-echo "   Workspace : $OPENCODE_WORKSPACE"
-echo "   Port      : $TERMINAL_PORT"
-echo "   Auto-start: $OPENCODE_AUTO_START"
-echo "   Model     : ${OPENCODE_MODEL:-<default>}"
+echo "   Workspace     : $OPENCODE_WORKSPACE"
+echo "   Port          : $TERMINAL_PORT"
+echo "   Auto-start    : $OPENCODE_AUTO_START"
+echo "   Model         : ${OPENCODE_MODEL:-<default>}"
+echo "   System prompt : ${OPENCODE_SYSTEM_PROMPT:+<set>}"
+echo "   Rules         : ${OPENCODE_RULES:+<set>}"
+echo "   Instructions  : ${OPENCODE_INSTRUCTIONS:+<set>}"
 echo ""
 
 # ── Start ttyd web terminal ──────────────────────────────────

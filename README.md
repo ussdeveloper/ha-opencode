@@ -2,7 +2,7 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
-[![Version](https://img.shields.io/badge/version-0.1.1-green)](https://github.com/ussdeveloper/ha-opencode)
+[![Version](https://img.shields.io/badge/version-0.1.2-green)](https://github.com/ussdeveloper/ha-opencode)
 
 **Web terminal with a full dev toolchain and OpenCode AI**, available as a Home Assistant add-on in the sidebar panel.
 
@@ -11,6 +11,7 @@
 - Runs a **web terminal** (ttyd) accessible via the Home Assistant sidebar
 - Includes a **full toolset**: bash, git, python3, nodejs, docker-cli, vim, tmux, jq, htop, ripgrep, fd and more
 - **Auto-starts OpenCode AI** in a tmux session — connects to it automatically on every terminal open
+- **Configurable system prompt, rules, and instructions** for OpenCode via add-on options
 - Provides **direct access** to:
   - `/config` — Home Assistant configuration (read-write)
   - `/var/run/docker.sock` — manage add-on containers
@@ -29,11 +30,45 @@
 ### Configuration
 
 ```yaml
-terminal_password: ""        # Terminal password (optional, basic auth)
-opencode_auto_start: true    # Auto-start OpenCode on boot
-opencode_workspace: "/config" # OpenCode working directory
-opencode_model: ""           # AI model (empty = default)
+terminal_password: ""          # Terminal password (optional, basic auth)
+opencode_auto_start: true      # Auto-start OpenCode on boot
+opencode_workspace: "/config"   # OpenCode working directory
+opencode_model: ""             # AI model (empty = default)
+
+# ── OpenCode AI customization ────────────────────────────────
+opencode_system_prompt: ""     # Custom system prompt for OpenCode
+opencode_rules: ""             # Custom rules (written as AGENTS.md)
+opencode_instructions: ""      # Additional custom instructions
 ```
+
+#### Customizing OpenCode behavior
+
+You can customize how OpenCode behaves directly from the add-on configuration:
+
+- **`opencode_system_prompt`** – overrides the default system prompt. Example:
+  ```yaml
+  opencode_system_prompt: |
+    You are a Home Assistant expert. Always prefer YAML configuration.
+    When editing automations, use modern HA syntax (triggers/conditions/actions).
+  ```
+
+- **`opencode_rules`** – project rules (auto-discovered by OpenCode as `AGENTS.md`). Example:
+  ```yaml
+  opencode_rules: |
+    - Always backup configuration.yaml before editing
+    - Use ha-cli check after every config change
+    - Follow Home Assistant best practices for YAML structure
+  ```
+
+- **`opencode_instructions`** – additional custom instructions loaded by OpenCode:
+  ```yaml
+  opencode_instructions: |
+    This is a smart home configuration.
+    Do not modify add-on configurations directly.
+    Always validate YAML syntax before suggesting changes.
+  ```
+
+These files are generated at startup in `~/.config/opencode/` inside the container and take effect immediately when OpenCode launches.
 
 ## Usage
 

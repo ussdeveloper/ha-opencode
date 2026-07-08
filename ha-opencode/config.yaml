@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.1"
+version: "0.1.2"
 slug: "ha-opencode"
 description: >-
   Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
@@ -59,6 +59,9 @@ options:
   opencode_auto_start: true
   opencode_workspace: "/config"
   opencode_model: ""
+  opencode_system_prompt: ""
+  opencode_rules: ""
+  opencode_instructions: ""
 
 # ── Schema (validation) ──────────────────────────────────────
 schema:
@@ -66,3 +69,6 @@ schema:
   opencode_auto_start: "bool"
   opencode_workspace: "str"
   opencode_model: "str?"
+  opencode_system_prompt: "str?"
+  opencode_rules: "str?"
+  opencode_instructions: "str?"

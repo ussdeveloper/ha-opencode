@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] – 2026-07-08
+
+### Added
+- **Configurable OpenCode system prompt** via `opencode_system_prompt` option
+- **Configurable OpenCode rules** via `opencode_rules` option (written as `AGENTS.md`)
+- **Configurable custom instructions** via `opencode_instructions` option
+- `run.sh` now auto-generates `opencode.json` and instruction files from add-on config
+- All OpenCode customization manageable directly from HA add-on options – no manual file edits needed
+
 ## [0.1.1] – 2026-07-08
 
 ### Changed
@@ -27,5 +36,6 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.2]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ussdeveloper/ha-opencode/releases/tag/v0.1.0
