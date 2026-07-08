@@ -50,9 +50,19 @@ write_default_agents_md() {
 
 ## Where you are
 You are running inside the **ha-opencode** add-on container on a Home Assistant
-OS / Supervised system. Your working directory is `/config` – the live Home
-Assistant configuration directory (read-write). You have full access to the
-Docker engine and Supervisor API.
+OS / Supervised system **with full unrestricted host access**. Your working
+directory is `/config` – the live Home Assistant configuration directory
+(read-write). You have privileged access to the Docker engine, Supervisor API,
+host network, host processes, and host D-Bus.
+
+### Access level
+- **host_network** – you see and use the host's real network interfaces (no NAT)
+- **host_pid** – you can see and interact with all host processes
+- **host_dbus** – you can call D-Bus services on the host (systemd, NetworkManager, etc.)
+- **host_ipc / host_uts** – shared IPC and hostname with the host
+- **Privileged container** – SYS_ADMIN, NET_ADMIN, SYS_PTRACE, SYS_RAWIO, SYS_MODULE
+- **Docker socket** – full control over all containers (add-ons + Supervisor)
+- **Supervisor API** – add-on lifecycle, host info, network, hardware
 
 ## Mounted paths
 | Path | Purpose | Access |
@@ -62,8 +72,9 @@ Docker engine and Supervisor API.
 | `/backup` | Backup storage – **use this for snapshots** | rw |
 | `/media` | Media files (images, audio, etc.) | rw |
 | `/ssl` | TLS/SSL certificates | ro |
-| `/addons` | Other add-on configs (git repos) | ro |
-| `/var/run/docker.sock` | Docker engine – manage add-on containers | rw |
+| `/addons` | Local add-on git repositories – **clone & build here** | rw |
+| `/var/run/docker.sock` | Docker engine – full container lifecycle control | rw |
+| `/dev/mem`, `/dev/tty` | Host devices | rw |
 
 ## Available tools (always in PATH)
 | Tool | Purpose |
@@ -76,17 +87,37 @@ Docker engine and Supervisor API.
 | `ha-cli exec <name>` | Open a shell inside any add-on container |
 | `ha-cli supervisor` | Show Supervisor info (needs SUPERVISOR_TOKEN) |
 | `backup-config [file]` | Backup a config file before editing |
-| `docker ...` | Full Docker CLI (list, exec, logs, inspect, etc.) |
+| `docker ...` | Full Docker CLI – pull, build, run, exec, stop, rm, logs, inspect |
 | `git`, `python3`, `node`, `jq`, `yq`, `curl`, `vim`, `tmux` | Standard dev tools |
+| `dbus-send`, `gdbus` | Host D-Bus interaction |
 
-## How to manage add-ons
+## How to manage add-ons (full control)
+Since you have Docker socket + Supervisor API access, you can:
 - **List add-ons**: `ha-cli docker-ps` or `docker ps`
+- **Install an add-on**: use Supervisor API or `ha addons install <slug>`
+- **Uninstall an add-on**: use Supervisor API or `ha addons uninstall <slug>`
+- **Start/stop/restart**: `docker start|stop|restart <container-name>`
 - **Enter an add-on shell**: `ha-cli exec addon_local_xyz` or `docker exec -it <name> bash`
-- **Restart an add-on**: `docker restart <container-name>`
-- **View add-on logs**: `docker logs <container-name>`
-- **Build a local add-on**: clone its repo into `/addons` (read-only from host side,
-  but you can work in `/share` or `/config`), then use the Supervisor API or
-  `ha addons install` if available.
+- **View add-on logs**: `docker logs -f <container-name>`
+- **Pull new images**: `docker pull <image>`
+- **Build a local add-on**: clone repo into `/addons/`, `docker build`, test, register
+- **Rebuild an add-on**: modify its source in `/addons/<slug>/`, rebuild via Supervisor
+
+## How to install/remove add-ons via Supervisor API
+```bash
+# List all add-ons
+curl -s -H "Authorization: Bearer $SUPERVISOR_TOKEN" http://supervisor/addons
+
+# Install an add-on from a repository
+curl -s -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"repository":"<repo-url>"}' \
+  http://supervisor/store/addons/<slug>/install
+
+# Uninstall
+curl -s -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" \
+  http://supervisor/addons/<slug>/uninstall
+```
 
 ## How to modify Home Assistant configuration
 1. **Backup first**: `backup-config /config/configuration.yaml`
@@ -109,23 +140,41 @@ Docker engine and Supervisor API.
 7. **Test changes incrementally** – one logical change at a time, verify, then proceed.
 8. **Use Supervisor API for add-on lifecycle** (install/uninstall/start/stop) rather
    than raw docker commands when possible – it maintains HA state consistency.
-
-## Modifying other add-ons
-You can access other add-on containers via `ha-cli exec` or `docker exec`. Each
-add-on has its own filesystem and configuration. Be careful – changes inside other
-add-on containers may not survive a rebuild/update of that add-on.
+9. **⚠️ You have FULL HOST ACCESS.** Be extremely careful with host-level operations
+   (D-Bus, host processes, network config). A mistake can crash the entire system.
+10. **Before installing/removing add-ons**, verify the action won't break
+    dependent services or integrations.
 
 ## Building custom local add-ons
-1. Create the add-on structure in `/share/addons/` or `/config/addons/`
-2. Follow the HA add-on spec: config.yaml, Dockerfile, run.sh
-3. Use `docker build` to test the image locally
-4. Register it as a local add-on via Supervisor or the HA UI
+Since `/addons` is now writable:
+1. Create the add-on structure in `/addons/<slug>/`
+2. Follow the HA add-on spec: config.yaml, Dockerfile, run.sh, build.json
+3. `docker build` to test the image locally
+4. Register via Supervisor API or it auto-detects from `/addons/`
 
-## Supervisor API
-When SUPERVISOR_TOKEN is available, you can query:
+## Host-level operations (use with caution)
+- **Check host processes**: `ps aux` (host PID namespace visible)
+- **Network config**: `ip addr`, `ip route` (host network stack)
+- **D-Bus services**: `dbus-send --system ...` or `gdbus`
+- **System logs**: `journalctl` (if available)
+- **Restart Supervisor**: `docker restart hassio_supervisor`
+- **Restart host services**: via D-Bus or docker
+
+## Supervisor API – full reference
 ```bash
-curl -s -H "Authorization: Bearer $SUPERVISOR_TOKEN" http://supervisor/info
-curl -s -H "Authorization: Bearer $SUPERVISOR_TOKEN" http://supervisor/addons
+TOKEN="$SUPERVISOR_TOKEN"
+# Host info
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/info
+# Network info
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/network/info
+# Add-on management
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/addons
+# Store (available add-ons)
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/store
+# Hardware
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/hardware/info
+# Host services
+curl -s -H "Authorization: Bearer $TOKEN" http://supervisor/services
 ```
 AGENTSEOF
 }
@@ -135,19 +184,22 @@ AGENTSEOF
 write_default_system_prompt() {
     cat << 'PROMPTEOF'
 You are an AI coding assistant running inside **ha-opencode**, a Home Assistant
-add-on container. You have full access to the Home Assistant configuration,
-Docker engine, Supervisor API, and all add-on containers.
+add-on container with **full unrestricted host access** (privileged, host network,
+host PID, host D-Bus, Docker socket, Supervisor API). You can manage every aspect
+of the Home Assistant system: configuration, add-ons (install/remove/build),
+host services, and networking.
 
 Your primary role is to help the user manage, configure, and extend their
-Home Assistant smart home system.
+Home Assistant smart home system with complete freedom.
 
 ## Core capabilities
 - Read, write, and validate Home Assistant configuration files (YAML)
-- Manage add-ons: list, start, stop, restart, exec into containers, view logs
-- Query Supervisor API for system info, add-on status, and hardware data
-- Edit automations, scripts, scenes, and dashboards
-- Build and test custom local add-ons
-- Run system diagnostics and troubleshoot issues
+- **Install, uninstall, start, stop, restart, and rebuild add-ons** via Supervisor API and Docker
+- **Build custom local add-ons** from source in `/addons/`
+- Query Supervisor API for system info, add-on status, store, network, and hardware
+- Access host processes, D-Bus services, and network configuration
+- Edit automations, scripts, scenes, dashboards, and integrations
+- Run system diagnostics and troubleshoot at host level
 - Use standard dev tools: git, python3, nodejs, jq, yq, curl, docker, vim, tmux
 
 ## Guiding principles

@@ -1,10 +1,11 @@
 name: "OpenCode Terminal"
-version: "0.1.3"
+version: "0.1.4"
 slug: "ha-opencode"
 description: >-
   Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
-  Access Home Assistant configuration, manage add-on containers via
-  docker.sock, auto-start OpenCode in a persistent tmux session.
+  Full unrestricted host access – manage HA configuration, install/remove
+  add-ons, access host processes and D-Bus, build custom local add-ons.
+  Auto-starts OpenCode in a persistent tmux session.
 url: "https://github.com/ussdeveloper/ha-opencode"
 arch:
   - aarch64
@@ -16,8 +17,13 @@ arch:
 homeassistant_api: true
 hassio_api: true
 docker_api: true
-host_network: false
+host_network: true
+host_pid: true
+host_uts: true
+host_ipc: true
+host_dbus: true
 apparmor: false
+protected: false
 
 # ── Ingress (sidebar panel) ──────────────────────────────────
 ingress: true
@@ -47,11 +53,23 @@ map:
   - share:rw
   - backup:rw
   - media:rw
-  - addons:ro
+  - addons:rw
 
-# ── Privileged access ────────────────────────────────────────
+# ── Host devices ────────────────────────────────────────────
+devices:
+  - /dev/mem
+  - /dev/tty
+
+# ── Privileged access (full host capabilities) ─────────────
 privileged:
+  - SYS_ADMIN
   - SYS_PTRACE
+  - NET_ADMIN
+  - SYS_RAWIO
+  - SYS_MODULE
+  - SYS_NICE
+  - SYS_RESOURCE
+  - SYS_TIME
 
 # ── Options (defaults) ───────────────────────────────────────
 options:

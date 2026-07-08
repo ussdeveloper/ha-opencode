@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] – 2026-07-08
+
+### Changed
+- **Full unrestricted host access enabled** – host_network, host_pid, host_dbus, host_ipc, host_uts
+- Extended Linux capabilities: SYS_ADMIN, NET_ADMIN, SYS_RAWIO, SYS_MODULE, SYS_NICE, SYS_RESOURCE, SYS_TIME
+- Host devices: /dev/mem, /dev/tty
+- `/addons` changed from read-only to read-write (clone & build local add-ons)
+- `protected: false` – add-on can be freely stopped/restarted
+- Default AGENTS.md expanded with install/uninstall add-ons, host operations, full Supervisor API reference
+- Default system prompt updated for full privileged access awareness
+- New safety rule: host-level operations caution
+
 ## [0.1.3] – 2026-07-08
 
 ### Added
@@ -49,6 +61,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.4]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.0...v0.1.1
