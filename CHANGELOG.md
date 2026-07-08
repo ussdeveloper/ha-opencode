@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.19] – 2026-07-08
+
+### Fixed
+- **Workspace `.opencode/` directory also persisted on volume** – 3rd symlink added
+- `$WORKSPACE/.opencode/` → `/data/opencode-workspace/` ensures opencode finds sessions in its project root
+- All 3 opencode state locations now survive container restarts: global (~/.opencode), config (~/.config/opencode), workspace (.opencode in project)
+- Verbose persistence log at startup shows all symlink targets
+
 ## [0.1.18] – 2026-07-08
 
 ### Changed
@@ -171,6 +179,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.19]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.15...v0.1.16

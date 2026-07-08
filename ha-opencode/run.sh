@@ -54,10 +54,11 @@ export OPENCODE_MODEL
 setup_opencode_persistence() {
     local persistent="/data/opencode"
     local persistent_config="/data/opencode-config"
+    local persistent_ws="/data/opencode-workspace"
 
-    mkdir -p "$persistent" "$persistent_config"
+    mkdir -p "$persistent" "$persistent_config" "$persistent_ws"
 
-    # ── ~/.opencode → /data/opencode (session state, history) ──
+    # ── ~/.opencode → /data/opencode (global session state, history) ──
     if [ -d /root/.opencode ] && [ ! -L /root/.opencode ]; then
         cp -a /root/.opencode/. "$persistent"/ 2>/dev/null || true
         rm -rf /root/.opencode
@@ -72,7 +73,17 @@ setup_opencode_persistence() {
     mkdir -p /root/.config 2>/dev/null || true
     ln -sf "$persistent_config" /root/.config/opencode 2>/dev/null || true
 
-    echo "[INFO] OpenCode state persisted at $persistent + $persistent_config"
+    # ── $WORKSPACE/.opencode → /data/opencode-workspace (project-level sessions) ──
+    if [ -d "$OPENCODE_WORKSPACE/.opencode" ] && [ ! -L "$OPENCODE_WORKSPACE/.opencode" ]; then
+        cp -a "$OPENCODE_WORKSPACE/.opencode/." "$persistent_ws"/ 2>/dev/null || true
+        rm -rf "$OPENCODE_WORKSPACE/.opencode"
+    fi
+    ln -sf "$persistent_ws" "$OPENCODE_WORKSPACE/.opencode" 2>/dev/null || true
+
+    echo "[INFO] OpenCode state persisted across 3 locations → /data/ (volume)"
+    echo "       Global  : $persistent"
+    echo "       Config  : $persistent_config"
+    echo "       Workspace: $persistent_ws (linked from $OPENCODE_WORKSPACE/.opencode)"
 }
 setup_opencode_persistence
 
