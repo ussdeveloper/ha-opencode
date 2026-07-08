@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] – 2026-07-08
+
+### Fixed
+- **Tmux session not attaching through sidebar panel** – rewrote `opencode-terminal.sh` with resilient error handling (no more `set -e` failures)
+- Fallback to plain bash after 5 consecutive tmux failures instead of silent crash
+- Tmux session now created detached first, then attached separately – more reliable through ttyd
+- Added `--check-origin=false` to ttyd for HA ingress proxy compatibility
+- Script path changed to absolute `/usr/local/bin/opencode-terminal.sh` in ttyd launch
+- Better logging: shows attach/detach status, fail count, and recovery instructions
+
 ## [0.1.5] – 2026-07-08
 
 ### Added
@@ -71,6 +81,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.6]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.2...v0.1.3

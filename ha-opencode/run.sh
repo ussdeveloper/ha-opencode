@@ -351,8 +351,8 @@ start_ttyd() {
 
     ttyd_args+=("--port" "$TERMINAL_PORT")
     ttyd_args+=("--writable")
-    ttyd_args+=("--max-clients" "5")
     ttyd_args+=("--ping-interval" "30")
+    ttyd_args+=("--check-origin=false")
 
     if [ -n "$TERMINAL_PASSWORD" ]; then
         ttyd_args+=("--credential" "admin:${TERMINAL_PASSWORD}")
@@ -363,7 +363,7 @@ start_ttyd() {
 
     # Choose what shell to launch
     if [ "$OPENCODE_AUTO_START" = "true" ]; then
-        shell_cmd="opencode-terminal.sh"
+        shell_cmd="/usr/local/bin/opencode-terminal.sh"
         echo "[INFO] Terminal will auto-attach to OpenCode tmux session"
     else
         shell_cmd="bash -l"
@@ -371,7 +371,7 @@ start_ttyd() {
     fi
 
     echo "[INFO] Starting ttyd web terminal on port $TERMINAL_PORT..."
-    exec ttyd "${ttyd_args[@]}" $shell_cmd
+    exec ttyd "${ttyd_args[@]}" -- $shell_cmd
 }
 
 # ── Cleanup trap ─────────────────────────────────────────────
