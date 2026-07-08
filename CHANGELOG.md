@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.12] – 2026-07-08
+
+### Added
+- **Custom logo** – `icon.png` (256×256) with terminal + AI theme in HA blue
+- Better sidebar panel icon: `mdi:robot-outline` (AI coding assistant)
+- Compelling add-on description highlighting AI-powered terminal capabilities
+
 ## [0.1.11] – 2026-07-08
 
 ### Added
@@ -131,6 +138,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.12]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.8...v0.1.9

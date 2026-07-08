@@ -1,11 +1,11 @@
 name: "OpenCode Terminal"
-version: "0.1.11"
+version: "0.1.12"
 slug: "ha-opencode"
 description: >-
-  Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
-  Full unrestricted host access – manage HA configuration, install/remove
-  add-ons, access host processes and D-Bus, build custom local add-ons.
-  Auto-starts OpenCode in a persistent tmux session.
+  AI-powered terminal for Home Assistant – full dev environment + OpenCode AI
+  coding agent with unrestricted host access. Manage configs, install & build
+  add-ons, SSH into the host, edit automations with AI assistance. Auto-starts
+  OpenCode with HA-aware rules, system prompts, and safety guardrails.
 url: "https://github.com/ussdeveloper/ha-opencode"
 arch:
   - aarch64
@@ -29,7 +29,7 @@ protected: false
 # ── Ingress (sidebar panel) ──────────────────────────────────
 ingress: true
 ingress_port: 7681
-panel_icon: mdi:console-line
+panel_icon: mdi:robot-outline
 panel_title: OpenCode
 panel_admin: false
 
