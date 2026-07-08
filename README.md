@@ -2,13 +2,26 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
-[![Version](https://img.shields.io/badge/version-0.1.24-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.25-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
 
 <p align="center">
   <img src="screenshots/opencode-terminal.png" alt="OpenCode Terminal in Home Assistant" width="800">
 </p>
 
 **AI-powered terminal for Home Assistant** – full dev environment with OpenCode AI coding agent, available as an add-on in the sidebar panel. Unrestricted host access, SSH, add-on management, and more.
+
+## ⚠️ Important Disclaimer
+
+**This add-on is experimental, runs with full privileged host access, and embeds an AI coding agent (OpenCode) with unrestricted system control.**
+
+- **Not for production systems.** Do not install on Home Assistant instances that manage critical infrastructure (heating, security, locks, life-safety systems).
+- **AI models can make mistakes.** OpenCode may suggest or execute commands that modify, break, or delete your Home Assistant configuration, add-ons, or host system. Always review AI-suggested actions before executing them.
+- **No liability.** The authors and contributors of this add-on assume **no responsibility** for any damage, data loss, misconfiguration, security breaches, or other consequences resulting from its use — whether caused by the AI agent, the add-on software, or user actions taken based on AI suggestions.
+- **Full host access = full risk.** This add-on runs with `full_access`, `host_network`, `host_pid`, `host_dbus`, `host_ipc`, `host_uts`, and privileged Linux capabilities (`SYS_ADMIN`, `NET_ADMIN`, `SYS_RAWIO`, etc.). An AI agent with this level of access can **modify host OS files, stop services, reconfigure networking, or render the system unbootable**.
+- **You are fully responsible** for any actions taken by the AI agent on your system. If you are not comfortable with an AI having unrestricted root-level access to your Home Assistant system, **do not install this add-on**.
+- **Back up your system** before installing and before allowing the AI agent to make any changes. A full Home Assistant backup is strongly recommended.
+
+By installing and using this add-on, you acknowledge that you understand and accept these risks.
 
 ## What it does
 
