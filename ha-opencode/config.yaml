@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.13"
+version: "0.1.14"
 slug: "ha-opencode"
 description: >-
   AI-powered terminal for Home Assistant – full dev environment + OpenCode AI
