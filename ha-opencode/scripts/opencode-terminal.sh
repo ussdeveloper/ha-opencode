@@ -87,10 +87,11 @@ while true; do
                 sleep 2
                 continue
             else
-                echo "→ Attach failed – session is running detached in background."
-                echo "   Type 'oca' to reattach manually."
-                FAIL_COUNT=$((FAIL_COUNT + 1))
-                exec bash -l
+                echo "→ Attach failed – OpenCode is running in the background tmux session."
+                echo "   Starting opencode directly in this terminal..."
+                echo ""
+                FAIL_COUNT=0
+                exec $OPENCODE_CMD
             fi
         else
             echo "→ Failed to create tmux session – retrying..."
