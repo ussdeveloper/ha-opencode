@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.14] – 2026-07-08
+## [0.1.15] – 2026-07-08
 
-### Added
-- Screenshot of OpenCode panel in README.md
+### Changed
+- Updated README with extended command reference (host-shell, ha-host, ssh-host)
+- Version bump to 0.1.15
+
+## [0.1.14] – 2026-07-08
 
 ## [0.1.13] – 2026-07-08
 
@@ -148,6 +151,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.15]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.11...v0.1.12

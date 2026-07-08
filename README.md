@@ -2,7 +2,7 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
-[![Version](https://img.shields.io/badge/version-0.1.14-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.15-green)](https://github.com/ussdeveloper/ha-opencode/blob/main/CHANGELOG.md)
 
 <p align="center">
   <img src="screenshots/opencode-terminal.png" alt="OpenCode Terminal in Home Assistant" width="800">
@@ -92,9 +92,13 @@ Click the **OpenCode** panel — a terminal opens directly attached to the OpenC
 ha-cli check          # Validate configuration.yaml
 ha-cli restart        # Restart Home Assistant core
 ha-cli logs           # Tail Home Assistant logs
-ha-cli backup         # Backup /config to /backup
-ha-cli docker-ps      # List add-on containers
-ha-cli exec <name>    # Exec into an add-on container
+ha-cli backup         # Create a snapshot of /config
+ha-cli docker-ps      # List all add-on containers
+ha-cli exec <name>    # Exec into any add-on container
+ha-cli supervisor     # Show Supervisor API info
+host-shell <cmd>      # Run a command on the HA OS host
+ha-host               # Interactive shell on the HA OS host
+ssh-host              # SSH into the HA OS host
 backup-config         # Backup configuration.yaml before editing
 ```
 
