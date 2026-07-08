@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.23] – 2026-07-08
-
-### Fixed
-- **CHANGELOG.md copied into add-on directory** – HA Supervisor now detects changelog correctly
-- Fixed "No changelog found" error in HA add-on info panel
-
 ## [0.1.22] – 2026-07-08
 
 ### Added
@@ -204,7 +198,6 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
-[0.1.23]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.19...v0.1.20
