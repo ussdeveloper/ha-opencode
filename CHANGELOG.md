@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.9] – 2026-07-08
+
+### Added
+- **`full_access: true`** – explicit HA Supervisor directive for unrestricted host access
+- This master switch enables all host namespaces, all capabilities, disables AppArmor, and disables protection mode
+
+### Fixed
+- Add-on now guaranteed full host access regardless of Supervisor protection mode defaults
+- All individual host flags (`host_*`) kept for clarity alongside `full_access`
+
 ## [0.1.8] – 2026-07-08
 
 ### Fixed
@@ -101,6 +111,7 @@ All notable changes to this project will be documented in this file.
 - Access to Docker socket and Supervisor API
 - Mounted folders: config, ssl, share, backup, media, addons
 
+[0.1.9]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/ussdeveloper/ha-opencode/compare/v0.1.5...v0.1.6

@@ -1,5 +1,5 @@
 name: "OpenCode Terminal"
-version: "0.1.8"
+version: "0.1.9"
 slug: "ha-opencode"
 description: >-
   Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
@@ -17,6 +17,7 @@ arch:
 homeassistant_api: true
 hassio_api: true
 docker_api: true
+full_access: true
 host_network: true
 host_pid: true
 host_uts: true
