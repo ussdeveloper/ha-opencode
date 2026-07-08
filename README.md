@@ -2,90 +2,114 @@
 
 [![Stage](https://img.shields.io/badge/stage-experimental-orange)](https://github.com/ussdeveloper/ha-opencode)
 [![Arch](https://img.shields.io/badge/arch-amd64%20%7C%20aarch64%20%7C%20armv7%20%7C%20armhf-blue)](https://github.com/ussdeveloper/ha-opencode)
+[![Version](https://img.shields.io/badge/version-0.1.1-green)](https://github.com/ussdeveloper/ha-opencode)
 
-**Terminal webowy z pełnymi narzędziami deweloperskimi i OpenCode AI**, dostępny jako add-on Home Assistant w panelu bocznym.
+**Web terminal with a full dev toolchain and OpenCode AI**, available as a Home Assistant add-on in the sidebar panel.
 
-## Co to robi?
+## What it does
 
-- Uruchamia **web terminal** (ttyd) dostępny przez panel boczny Home Assistant
-- Zawiera **pełen zestaw narzędzi**: bash, git, python3, nodejs, docker-cli, vim, tmux, jq, htop, ripgrep, fd i więcej
-- Automatycznie startuje **OpenCode AI** (`opencode --continue`) w sesji tmux przy starcie add-onu
-- Daje **bezpośredni dostęp** do:
-  - `/config` – konfiguracja Home Assistant (rw)
-  - `/var/run/docker.sock` – zarządzanie kontenerami add-onów
-  - Supervisor API – restart, logi, check konfiguracji
+- Runs a **web terminal** (ttyd) accessible via the Home Assistant sidebar
+- Includes a **full toolset**: bash, git, python3, nodejs, docker-cli, vim, tmux, jq, htop, ripgrep, fd and more
+- **Auto-starts OpenCode AI** in a tmux session — connects to it automatically on every terminal open
+- Provides **direct access** to:
+  - `/config` — Home Assistant configuration (read-write)
+  - `/var/run/docker.sock` — manage add-on containers
+  - Supervisor API — restart, logs, config check
   - `/share`, `/backup`, `/media`, `/ssl`, `/addons`
 
-## Instalacja
+## Quick start
 
-### Jako repozytorium add-onów
+### Add repository
 
-1. W Home Assistant przejdź do **Ustawienia → Dodatki → Sklep z dodatkami**
-2. Kliknij ⋮ → **Repozytoria**
-3. Dodaj URL: `https://github.com/ussdeveloper/ha-opencode`
-4. Odśwież listę, znajdź **OpenCode Terminal** i kliknij **Instaluj**
+1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**
+2. Click ⋮ → **Repositories**
+3. Add: `https://github.com/ussdeveloper/ha-opencode`
+4. Refresh, find **OpenCode Terminal**, and click **Install**
 
-### Konfiguracja
+### Configuration
 
 ```yaml
-terminal_password: ""        # Hasło do terminala (opcjonalne, basic auth)
-opencode_auto_start: true    # Automatyczny start OpenCode
-opencode_workspace: "/config" # Katalog roboczy OpenCode
-opencode_model: ""           # Model AI (pusty = domyślny)
+terminal_password: ""        # Terminal password (optional, basic auth)
+opencode_auto_start: true    # Auto-start OpenCode on boot
+opencode_workspace: "/config" # OpenCode working directory
+opencode_model: ""           # AI model (empty = default)
 ```
 
-## Użycie
+## Usage
 
-Po zainstalowaniu add-on pojawi się jako **OpenCode** w panelu bocznym Home Assistant.
+Once installed, the add-on appears as **OpenCode** in the Home Assistant sidebar.
 
-### Terminal webowy
-Kliknij panel **OpenCode** – otworzy się terminal bash z dostępem do całego systemu.
+### Web terminal
+Click the **OpenCode** panel — a terminal opens directly attached to the OpenCode tmux session with `opencode --continue` running.
 
 ### OpenCode AI
-OpenCode startuje automatycznie w sesji tmux. Aby się podłączyć:
+- Opens automatically when you connect — just start typing prompts
+- `Ctrl+B` then `D` to detach (OpenCode keeps running)
+- `oca` or `opencode-attach` to reattach later
+- If OpenCode exits, it auto-restarts in the tmux session
+
+### Useful commands
 ```bash
-opencode-attach
-# lub ręcznie:
-tmux attach -t opencode
+ha-cli check          # Validate configuration.yaml
+ha-cli restart        # Restart Home Assistant core
+ha-cli logs           # Tail Home Assistant logs
+ha-cli backup         # Backup /config to /backup
+ha-cli docker-ps      # List add-on containers
+ha-cli exec <name>    # Exec into an add-on container
+backup-config         # Backup configuration.yaml before editing
 ```
 
-### Przydatne komendy
-```bash
-ha-cli check          # Sprawdź configuration.yaml
-ha-cli restart        # Restart Home Assistant
-ha-cli logs           # Logi Home Assistant
-ha-cli backup         # Backup /config do /backup
-ha-cli docker-ps      # Lista kontenerów add-onów
-ha-cli exec <name>    # Wejdź do kontenera add-onu
-backup-config         # Backup configuration.yaml przed edycją
+## How it works
+
+```
+┌─────────────────────────────────────────────┐
+│              Home Assistant OS              │
+│  ┌───────────────────────────────────────┐  │
+│  │        ha-opencode container          │  │
+│  │                                       │  │
+│  │  ttyd (port 7681)                     │  │
+│  │    │                                  │  │
+│  │    ▼                                  │  │
+│  │  opencode-terminal.sh                 │  │
+│  │    │                                  │  │
+│  │    ▼                                  │  │
+│  │  tmux session "opencode"              │  │
+│  │    └─ opencode --continue             │  │
+│  │                                       │  │
+│  │  Mounts:                              │  │
+│  │    /config ← HA config (rw)           │  │
+│  │    /var/run/docker.sock (rw)          │  │
+│  │    Supervisor API                     │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
 ```
 
-## Wymagania
+## Requirements
 
-- Home Assistant OS / Supervised (z Supervisor)
-- Dowolna architektura: `amd64`, `aarch64`, `armv7`, `armhf`
+- Home Assistant OS or Supervised (with Supervisor)
+- Any architecture: `amd64`, `aarch64`, `armv7`, `armhf`
 
-## Bezpieczeństwo
+## Security
 
-- Terminal jest dostępny przez panel boczny HA (ingress) – to samo uwierzytelnienie co HA
-- Opcjonalne dodatkowe hasło basic auth na terminal
-- Dostęp do dockera tylko z poziomu kontenera add-onu
-- Skrypt `backup-config` automatycznie tworzy kopię przed edycją plików
+- Terminal is available through the HA sidebar (ingress) — same authentication as HA
+- Optional basic auth password on the terminal
+- Docker access limited to the add-on container scope
+- `backup-config` script auto-snapshots before editing files
 
-## Narzędzia w kontenerze
+## Tools inside the container
 
-| Kategoria | Narzędzia |
+| Category | Tools |
 |---|---|
 | Shell | bash, bash-completion, tmux |
-| Edytory | vim, neovim |
+| Editors | vim, neovim |
 | Git | git, git-lfs |
 | Python | python3, pip3, homeassistant-cli, pyyaml |
 | Node.js | nodejs, npm |
 | Docker | docker-cli, docker-compose |
-| Narzędzia | jq, yq, curl, wget, htop, btop, ncdu, ripgrep, fd, tree |
-| Kompresja | unzip, zip, tar |
-| AI | opencode-ai (global install) |
+| CLI tools | jq, yq, curl, wget, htop, btop, ncdu, ripgrep, fd, tree |
+| Compression | unzip, zip, tar |
+| AI | opencode-ai (global npm install) |
 
-## Licencja
+## License
 
 MIT

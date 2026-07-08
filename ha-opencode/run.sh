@@ -3,7 +3,8 @@
 # ha-opencode entrypoint
 # 1. Reads options from /data/options.json (HA add-on standard)
 # 2. Starts ttyd web terminal on port 7681
-# 3. Optionally starts OpenCode AI in a tmux session
+# 3. The terminal auto-launches opencode-terminal.sh which
+#    always opens a tmux session with opencode --continue
 # 4. Keeps the container alive
 # ──────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -13,7 +14,7 @@ TERMINAL_PORT="${TERMINAL_PORT:-7681}"
 
 # ── Banner ───────────────────────────────────────────────────
 echo "╔══════════════════════════════════════════════╗"
-echo "║        ha-opencode – OpenCode Terminal       ║"
+echo "║       ha-opencode – OpenCode Terminal        ║"
 echo "╚══════════════════════════════════════════════╝"
 
 # ── Read options ─────────────────────────────────────────────
@@ -33,6 +34,7 @@ fi
 # ── Ensure workspace exists ──────────────────────────────────
 mkdir -p "$OPENCODE_WORKSPACE" /data/logs
 export OPENCODE_WORKSPACE
+export OPENCODE_MODEL
 
 # ── Setup opencode config (first run) ────────────────────────
 if [ ! -d "/root/.opencode" ]; then
@@ -47,42 +49,20 @@ echo "   Auto-start: $OPENCODE_AUTO_START"
 echo "   Model     : ${OPENCODE_MODEL:-<default>}"
 echo ""
 
-# ── OpenCode startup (in tmux session) ───────────────────────
-start_opencode() {
-    echo "[INFO] Starting OpenCode AI in tmux session 'opencode'..."
-
-    # Kill existing session if any
-    tmux kill-session -t opencode 2>/dev/null || true
-
-    # Create new detached session
-    tmux new-session -d -s opencode -c "$OPENCODE_WORKSPACE" \
-        -e "OPENCODE_WORKSPACE=$OPENCODE_WORKSPACE"
-
-    # Allow time for session to initialize
-    sleep 1
-
-    # Send the opencode continue command
-    tmux send-keys -t opencode "clear" Enter
-    tmux send-keys -t opencode "echo 'OpenCode AI – ready'" Enter
-
-    if [ -n "$OPENCODE_MODEL" ]; then
-        tmux send-keys -t opencode "opencode --model \"$OPENCODE_MODEL\" --continue" Enter
-    else
-        tmux send-keys -t opencode "opencode --continue" Enter
-    fi
-
-    echo "[OK]   OpenCode started in tmux session (attach: tmux attach -t opencode)"
-}
-
-# ── Start ttyd web terminal ─────────────────────────────────
+# ── Start ttyd web terminal ──────────────────────────────────
+# The terminal runs opencode-terminal.sh which:
+#   - Creates a tmux session "opencode" if it doesn't exist
+#   - Starts opencode --continue inside it
+#   - Attaches to the session on every new connection
+#   - Loops on detach/disconnect so you always land back in opencode
 start_ttyd() {
     local ttyd_args=()
+    local shell_cmd
 
     ttyd_args+=("--port" "$TERMINAL_PORT")
     ttyd_args+=("--writable")
     ttyd_args+=("--max-clients" "5")
     ttyd_args+=("--ping-interval" "30")
-    ttyd_args+=("--once")
 
     if [ -n "$TERMINAL_PASSWORD" ]; then
         ttyd_args+=("--credential" "admin:${TERMINAL_PASSWORD}")
@@ -91,8 +71,17 @@ start_ttyd() {
         echo "[INFO] Terminal auth disabled (no password set)"
     fi
 
+    # Choose what shell to launch
+    if [ "$OPENCODE_AUTO_START" = "true" ]; then
+        shell_cmd="opencode-terminal.sh"
+        echo "[INFO] Terminal will auto-attach to OpenCode tmux session"
+    else
+        shell_cmd="bash -l"
+        echo "[INFO] Terminal starts plain bash (opencode auto-start disabled)"
+    fi
+
     echo "[INFO] Starting ttyd web terminal on port $TERMINAL_PORT..."
-    exec ttyd "${ttyd_args[@]}" bash -l
+    exec ttyd "${ttyd_args[@]}" $shell_cmd
 }
 
 # ── Cleanup trap ─────────────────────────────────────────────
@@ -106,13 +95,10 @@ cleanup() {
 trap cleanup SIGTERM SIGINT SIGHUP
 
 # ── Main ─────────────────────────────────────────────────────
-if [ "$OPENCODE_AUTO_START" = "true" ]; then
-    start_opencode
-fi
-
 echo "[INFO] ha-opencode is ready!"
-echo "   → Terminal: http://<ha-ip>:7681"
-echo "   → Sidebar : OpenCode panel"
+echo "   → Terminal : http://<ha-ip>:7681"
+echo "   → Sidebar  : OpenCode panel"
+echo "   → Tmux ses : opencode (auto-attached on connect)"
 echo ""
 
 start_ttyd

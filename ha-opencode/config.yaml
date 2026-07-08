@@ -1,10 +1,10 @@
 name: "OpenCode Terminal"
-version: "0.1.0"
+version: "0.1.1"
 slug: "ha-opencode"
 description: >-
-  Terminal webowy z pełnym zestawem narzędzi deweloperskich, Docker CLI
-  i OpenCode AI. Dostęp do konfiguracji Home Assistant, zarządzanie
-  kontenerami add-onów przez docker.sock, automatyczny start OpenCode.
+  Web terminal with full dev toolchain, Docker CLI, and OpenCode AI.
+  Access Home Assistant configuration, manage add-on containers via
+  docker.sock, auto-start OpenCode in a persistent tmux session.
 url: "https://github.com/ussdeveloper/ha-opencode"
 arch:
   - aarch64
@@ -12,26 +12,26 @@ arch:
   - armv7
   - armhf
 
-# ── HA/Supervisor integration ──────────────────────────────────
+# ── HA / Supervisor integration ──────────────────────────────
 homeassistant_api: true
 hassio_api: true
 docker_api: true
 host_network: false
 apparmor: false
 
-# ── Ingress (panel boczny) ─────────────────────────────────────
+# ── Ingress (sidebar panel) ──────────────────────────────────
 ingress: true
 ingress_port: 7681
 panel_icon: mdi:console-line
 panel_title: OpenCode
 panel_admin: false
 
-# ── Startup ────────────────────────────────────────────────────
+# ── Startup ──────────────────────────────────────────────────
 startup: application
 boot: auto
 init: false
 
-# ── Stage ──────────────────────────────────────────────────────
+# ── Stage ────────────────────────────────────────────────────
 stage: experimental
 
 # ── Ports ────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ ports:
 ports_description:
   7681/tcp: "Web terminal (ttyd)"
 
-# ── Mapped folders ─────────────────────────────────────────────
+# ── Mapped folders ───────────────────────────────────────────
 map:
   - config:rw
   - ssl:ro
@@ -49,18 +49,18 @@ map:
   - media:rw
   - addons:ro
 
-# ── Privileged access ──────────────────────────────────────────
+# ── Privileged access ────────────────────────────────────────
 privileged:
   - SYS_PTRACE
 
-# ── Options (defaults) ────────────────────────────────────────
+# ── Options (defaults) ───────────────────────────────────────
 options:
   terminal_password: ""
   opencode_auto_start: true
   opencode_workspace: "/config"
   opencode_model: ""
 
-# ── Schema (validation) ────────────────────────────────────────
+# ── Schema (validation) ──────────────────────────────────────
 schema:
   terminal_password: "password?"
   opencode_auto_start: "bool"
