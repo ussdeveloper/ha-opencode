@@ -261,6 +261,17 @@ echo "   Auto-approve : $AUTO_APPROVE"
 echo "   Migrate v1   : $MIGRATE_V1"
 opencode --version || true
 
+PASS_FILE="/data/.server-password"
+if [ ! -s "$PASS_FILE" ]; then
+    openssl rand -base64 24 | tr -d '\n' > "$PASS_FILE"
+    chmod 600 "$PASS_FILE"
+fi
+OPENCODE_PASSWORD="$(cat "$PASS_FILE")"
+export OPENCODE_PASSWORD
+export OPENCODE_SERVER_PASSWORD="$OPENCODE_PASSWORD"
+export OPENCODE_SERVER_USERNAME=opencode
+echo "[INFO] Sidebar sign-in uses the add-on server password. Home Assistant login is the gate."
+
 OPENCODE_PID=""
 PROXY_PID=""
 cleanup() {

@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.5] – 2026-11-08
+
+### Fixed
+- The sidebar signs in to OpenCode by itself. The connect screen never appeared: it only opens after the app is running and the API returns 401, and the pairing link points at an address inside the container.
+
 ## [2.0.4] – 2026-11-08
 
 ### Fixed

@@ -10,6 +10,13 @@ Slug: `ha-opencode-serve`. Architectures: `amd64`, `aarch64`. OpenCode 2 does no
 2. If `migrate_v1_sessions` is on and the OpenCode Terminal add-on data is on the host, sessions are **copied** once into this add-on's volume. The 1.0 files are not moved or deleted.
 3. `opencode serve` listens on `127.0.0.1:4097`.
 4. A small proxy listens on port `4096` (ingress). Home Assistant strips `/api/hassio_ingress/<token>` and sends it in `X-Ingress-Path`. The proxy puts that prefix back on asset, API, and WebSocket URLs so the page works in the sidebar.
+5. The proxy signs the sidebar in to OpenCode. The UI does not ask for a server password.
+
+## Sign-in
+
+OpenCode 2 protects the web UI with its own server password. The documented sign-in is a one-time `/auth/connect/...` link from `opencode pair`, or the password printed as `server password` when `opencode serve` starts. That screen only appears after the app is running and the API answers `401 Authentication required`. There is no browser password popup.
+
+Inside Home Assistant that link points at `127.0.0.1` in the container, so the browser cannot open it. The add-on stores a password in `/data/.server-password` and the proxy sends it as Basic auth (`opencode` / that password) on requests that do not already have an `Authorization` header. Anyone who can open the sidebar is already signed in to Home Assistant, and that is the access check.
 
 `auto_approve` writes an OpenCode 2 permission rule that allows every action. `opencode serve` in 2.2.6 has no `--auto` flag (`--auto` exists on `opencode run`). If a newer binary adds `serve --auto`, the entrypoint passes it too.
 

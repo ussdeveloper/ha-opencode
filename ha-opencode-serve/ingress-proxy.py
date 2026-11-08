@@ -426,17 +426,33 @@ async def read_full_body(reader: asyncio.StreamReader, headers: dict[str, str], 
     return blob
 
 
+def basic_authorization() -> str:
+    password = os.environ.get("OPENCODE_PASSWORD", "")
+    if not password:
+        return ""
+    user = os.environ.get("OPENCODE_SERVER_USERNAME", "opencode")
+    token = base64.b64encode(f"{user}:{password}".encode()).decode("ascii")
+    return "Basic " + token
+
+
 def encode_request(head: bytes, body: bytes, upstream_host: str, upgrade: bool) -> bytes:
     start, raw, _headers = parse_headers(head)
     lines = [start]
+    saw_authorization = False
     for name, value in raw:
         key = name.lower()
         if key == "host" or key == "accept-encoding":
             continue
         if not upgrade and (key in HOP_BY_HOP or key == "content-length"):
             continue
+        if key == "authorization":
+            saw_authorization = True
         lines.append(f"{name}: {value}")
     lines.append(f"Host: {upstream_host}")
+    if not saw_authorization:
+        authorization = basic_authorization()
+        if authorization:
+            lines.append(f"Authorization: {authorization}")
     if upgrade:
         lines.append("Connection: Upgrade")
     else:
@@ -632,6 +648,19 @@ def self_test() -> None:
     assert "globalThis.__ocPath(e)" in js
     assert "_assets/current-abc.js?oc=204" in js
     assert "function(e){return`/api/hassio_ingress/abc/`+e}" in js
+    os.environ["OPENCODE_PASSWORD"] = "secret"
+    os.environ["OPENCODE_SERVER_USERNAME"] = "opencode"
+    authed = encode_request(b"GET /api/info HTTP/1.1\r\nHost: ha.local\r\n\r\n", b"", "127.0.0.1:9", False)
+    assert b"Authorization: Basic b3BlbmNvZGU6c2VjcmV0\r\n" in authed
+    already = encode_request(
+        b"GET /api/info HTTP/1.1\r\nHost: ha.local\r\nAuthorization: Basic dXNlcjpwYXNz\r\n\r\n",
+        b"",
+        "127.0.0.1:9",
+        False,
+    )
+    assert already.count(b"Authorization:") == 1
+    assert b"Basic dXNlcjpwYXNz" in already
+    os.environ.pop("OPENCODE_PASSWORD", None)
 
     async def scenario() -> None:
         async def upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

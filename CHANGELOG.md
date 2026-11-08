@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.5 – 2026-11-08
+
+The sidebar now signs in to the OpenCode server. The connect screen stayed hidden because the app never got far enough to show it, and its pairing link is not reachable from the browser.
+
 ## OpenCode 2 add-on – 2.0.4 – 2026-11-08
 
 Stylesheet preload was still asking the Home Assistant root for `/_assets/*.css`. Those URLs now stay on the ingress path.
