@@ -1,5 +1,11 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.2] – 2026-11-08
+
+### Fixed
+- Sidebar panel was blank after 2.0.1. OpenCode answered, but its script URLs pointed at the Home Assistant root and returned 404.
+- The ingress proxy now rewrites those URLs onto the ingress path and leaves compressed bodies alone unless it is changing them.
+
 ## [2.0.1] – 2026-11-08
 
 ### Fixed

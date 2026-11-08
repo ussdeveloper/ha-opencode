@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.2 – 2026-11-08
+
+The sidebar page loaded as an empty frame because OpenCode's scripts were requested from the Home Assistant root. 2.0.2 rewrites those URLs onto the ingress path.
+
 ## OpenCode 2 add-on – 2.0.1 – 2026-11-08
 
 Ingress now connects straight to `opencode serve` on port 4096. Session migration also searches `/mnt/data/supervisor/apps/data`.

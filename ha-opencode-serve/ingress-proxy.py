@@ -1,37 +1,41 @@
 #!/usr/bin/env python3
-"""Proxy OpenCode serve into a Home Assistant ingress iframe.
+"""Put OpenCode serve behind Home Assistant ingress.
 
-Supervisor strips /api/hassio_ingress/<token> before the request reaches this
-process and sends that prefix in X-Ingress-Path. OpenCode 2.2 serves the web
-UI at / and calls APIs on location.origin, so a bare reverse proxy breaks the
-sidebar. This proxy:
+Supervisor strips /api/hassio_ingress/<token> and sends that prefix in
+X-Ingress-Path. OpenCode serves the UI at / and its script URLs are absolute,
+so the sidebar iframe would request them from Home Assistant itself.
 
-- rewrites absolute asset URLs in HTML
-- injects a script that hides the ingress prefix from the client router and
-  puts it back on fetch, WebSocket, XHR, and media URLs
+Only HTML and JavaScript are rewritten. Everything else, including websocket
+upgrades, is copied through unchanged. Rewritten bodies are sent without the
+original Content-Encoding, because changing a compressed body and leaving that
+header in place makes Supervisor report a bad gateway.
 """
 
 from __future__ import annotations
 
 import asyncio
+import base64
+import gzip
+import hashlib
 import json
 import os
 import re
 import sys
+import zlib
 from typing import Optional
 
 HOP_BY_HOP = {
     "connection",
     "keep-alive",
-    "proxy-connection",
-    "transfer-encoding",
-    "upgrade",
+    "proxy-authenticate",
+    "proxy-authorization",
     "te",
     "trailer",
+    "transfer-encoding",
+    "upgrade",
 }
 
 INJECT_JS = r"""
-<script nonce="__NONCE__">
 (function () {
   var P = __PREFIX__;
   if (!P) return;
@@ -46,6 +50,16 @@ INJECT_JS = r"""
     if (already(path)) return path;
     return P + path;
   }
+
+  globalThis.__ocPath = function () {
+    var path = location.pathname || "/";
+    if (path === P || path === P + "/") return "/";
+    if (path.indexOf(P + "/") === 0) {
+      var rest = path.slice(P.length);
+      return rest.charAt(0) === "/" ? rest : "/" + rest;
+    }
+    return path;
+  };
 
   function rewriteHistoryUrl(url) {
     if (url == null) return url;
@@ -72,29 +86,6 @@ INJECT_JS = r"""
       return u;
     }
   }
-
-  try {
-    var desc = Object.getOwnPropertyDescriptor(Location.prototype, "pathname");
-    if (desc && desc.get && desc.configurable) {
-      Object.defineProperty(Location.prototype, "pathname", {
-        configurable: true,
-        enumerable: desc.enumerable,
-        get: function () {
-          var value = desc.get.call(this);
-          if (this === location && already(value)) {
-            var rest = value.slice(P.length);
-            return rest.charAt(0) === "/" ? rest : "/" + rest;
-          }
-          return value;
-        },
-        set: function (value) {
-          var next = String(value);
-          if (this === location) next = prefixPath(next.charAt(0) === "/" ? next : "/" + next);
-          return desc.set.call(this, next);
-        },
-      });
-    }
-  } catch (e) {}
 
   function wrapHistory(name) {
     var orig = History.prototype[name];
@@ -148,36 +139,16 @@ INJECT_JS = r"""
     return xo.apply(this, args);
   };
 
-  function patchProp(proto, prop) {
-    var d = Object.getOwnPropertyDescriptor(proto, prop);
-    if (!d || !d.set || !d.configurable) return;
-    Object.defineProperty(proto, prop, {
-      configurable: true,
-      enumerable: d.enumerable,
-      get: d.get,
-      set: function (value) { return d.set.call(this, fix(value)); },
-    });
-  }
-  if (window.HTMLImageElement) patchProp(HTMLImageElement.prototype, "src");
-  if (window.HTMLScriptElement) patchProp(HTMLScriptElement.prototype, "src");
-  if (window.HTMLLinkElement) patchProp(HTMLLinkElement.prototype, "href");
-  if (window.HTMLMediaElement) patchProp(HTMLMediaElement.prototype, "src");
-
-  var setAttr = Element.prototype.setAttribute;
-  Element.prototype.setAttribute = function (name, value) {
-    if ((name === "src" || name === "href") && typeof value === "string") value = fix(value);
-    return setAttr.call(this, name, value);
-  };
-
   if (navigator.serviceWorker && navigator.serviceWorker.register) {
     navigator.serviceWorker.register = function () { return Promise.resolve(); };
   }
-
-  window.__OPENCODE__ = window.__OPENCODE__ || {};
-  window.__OPENCODE__.basePath = P;
 })();
-</script>
 """
+
+_ATTR_RE = re.compile(
+    r"""(?P<attr>href|src|action)=(?P<q>["'])(?P<path>/[^"']*)(?P=q)""",
+    re.I,
+)
 
 
 def normalize_prefix(value: str) -> str:
@@ -207,12 +178,33 @@ def rewrite_location(value: str, prefix: str) -> str:
     return prefix + value
 
 
-_ATTR_RE = re.compile(r"""(?P<attr>href|src|action)=(?P<q>["'])(?P<path>/[^"']*)(?P=q)""", re.I)
+def script_tag(prefix: str) -> tuple[str, str]:
+    body = INJECT_JS.replace("__PREFIX__", json.dumps(prefix))
+    digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode("ascii")
+    return "<script>" + body + "</script>", digest
 
 
-def rewrite_html(html: str, prefix: str, nonce: str) -> str:
+def add_script_hash(csp: str, digest: str) -> str:
+    token = f"'sha256-{digest}'"
+    if token in csp:
+        return csp
+    parts = csp.split(";")
+    found = False
+    out: list[str] = []
+    for part in parts:
+        if part.strip().lower().startswith("script-src"):
+            out.append(part.rstrip() + " " + token)
+            found = True
+        else:
+            out.append(part)
+    if not found:
+        out.append(f" script-src 'self' {token}")
+    return ";".join(out)
+
+
+def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
     if not prefix:
-        return html
+        return html, ""
 
     def repl(match: re.Match[str]) -> str:
         path = match.group("path")
@@ -222,145 +214,209 @@ def rewrite_html(html: str, prefix: str, nonce: str) -> str:
         return f"{match.group('attr')}={quote}{prefix}{path}{quote}"
 
     html = _ATTR_RE.sub(repl, html)
-    script = INJECT_JS.replace("__PREFIX__", json.dumps(prefix)).replace("__NONCE__", nonce)
+    tag, digest = script_tag(prefix)
     head = re.search(r"<head[^>]*>", html, flags=re.I)
     if head:
         at = head.end()
-        return html[:at] + script + html[at:]
-    return script + html
+        html = html[:at] + tag + html[at:]
+    else:
+        html = tag + html
+    return html, digest
 
 
-def nonce_from(headers: dict[str, str], body: str) -> str:
-    csp = headers.get("content-security-policy", "")
-    match = re.search(r"nonce-([A-Za-z0-9+/=_-]+)", csp)
-    if match:
-        return match.group(1)
-    match = re.search(r"""nonce=["']([^"']+)["']""", body)
-    return match.group(1) if match else ""
+def rewrite_js(text: str, prefix: str) -> str:
+    if not prefix:
+        return text
+    text = text.replace("window.location.pathname", "globalThis.__ocPath()")
+    text = text.replace("location.pathname", "globalThis.__ocPath()")
+    needle = "function hq(){return location.origin}"
+    if needle in text:
+        text = text.replace(
+            needle,
+            "function hq(){return location.origin+" + json.dumps(prefix) + "}",
+            1,
+        )
+    return text
 
 
-def relax_csp(value: str) -> str:
-    if not value or "unsafe-inline" in value or "nonce-" in value:
-        return value
+class ByteBuf:
+    def __init__(self, reader: asyncio.StreamReader, pending: bytes = b""):
+        self.reader = reader
+        self.data = pending
 
-    def add(match: re.Match[str]) -> str:
-        return match.group(0) + " 'unsafe-inline'"
+    async def readuntil(self, sep: bytes = b"\r\n") -> bytes:
+        while sep not in self.data:
+            chunk = await self.reader.read(65536)
+            if not chunk:
+                raise ConnectionError("unexpected eof")
+            self.data += chunk
+            if len(self.data) > 8_000_000:
+                raise RuntimeError("chunk header too large")
+        index = self.data.find(sep)
+        line = self.data[:index]
+        self.data = self.data[index + len(sep) :]
+        return line
 
-    updated, count = re.subn(r"(?i)script-src(?:-elem)?[^;]*", add, value)
-    return updated if count else value
+    async def readexactly(self, size: int) -> bytes:
+        while len(self.data) < size:
+            chunk = await self.reader.read(max(65536, size - len(self.data)))
+            if not chunk:
+                raise ConnectionError("unexpected eof")
+            self.data += chunk
+        out = self.data[:size]
+        self.data = self.data[size:]
+        return out
 
 
-class HttpMessage:
-    def __init__(self, start: str, headers: dict[str, str], raw_headers: list[tuple[str, str]], body: bytes):
-        self.start = start
-        self.headers = headers
-        self.raw_headers = raw_headers
-        self.body = body
-
-    @property
-    def upgrade(self) -> bool:
-        connection = self.headers.get("connection", "")
-        return "upgrade" in connection.lower() or "websocket" in self.headers.get("upgrade", "").lower()
+def split_head(blob: bytes) -> tuple[bytes, bytes]:
+    marker = b"\r\n\r\n"
+    index = blob.find(marker)
+    if index < 0:
+        return blob, b""
+    return blob[: index + 4], blob[index + 4 :]
 
 
-async def _read_headers(reader: asyncio.StreamReader) -> Optional[tuple[str, dict[str, str], list[tuple[str, str]]]]:
-    try:
-        start = await reader.readuntil(b"\r\n")
-    except asyncio.IncompleteReadError:
-        return None
-    if not start or start == b"\r\n":
-        return None
+async def read_head(reader: asyncio.StreamReader) -> tuple[bytes, bytes]:
+    blob = b""
+    while b"\r\n\r\n" not in blob:
+        chunk = await reader.read(8192)
+        if not chunk:
+            break
+        blob += chunk
+        if len(blob) > 1_000_000:
+            raise RuntimeError("headers too large")
+    return split_head(blob)
+
+
+def parse_headers(head: bytes) -> tuple[str, list[tuple[str, str]], dict[str, str]]:
+    text = head.decode("iso-8859-1", errors="replace")
+    lines = text.split("\r\n")
+    start = lines[0]
     raw: list[tuple[str, str]] = []
     folded: dict[str, str] = {}
+    for line in lines[1:]:
+        if not line or ":" not in line:
+            continue
+        name, value = line.split(":", 1)
+        value = value.strip()
+        raw.append((name, value))
+        key = name.lower()
+        folded[key] = value if key not in folded else folded[key] + ", " + value
+    return start, raw, folded
+
+
+def is_upgrade(headers: dict[str, str]) -> bool:
+    return "upgrade" in headers.get("connection", "").lower() or bool(headers.get("upgrade"))
+
+
+def decode_body(payload: bytes, headers: dict[str, str]) -> bytes:
+    encoding = headers.get("content-encoding", "").lower()
+    if "gzip" in encoding:
+        return gzip.decompress(payload)
+    if "deflate" in encoding:
+        try:
+            return zlib.decompress(payload)
+        except zlib.error:
+            return zlib.decompress(payload, -zlib.MAX_WBITS)
+    return payload
+
+
+def should_rewrite(path: str, content_type: str) -> str:
+    lowered = content_type.lower()
+    if "text/html" in lowered:
+        return "html"
+    if "javascript" in lowered or path.split("?", 1)[0].endswith(".js"):
+        return "js"
+    return ""
+
+
+async def read_chunked(reader: asyncio.StreamReader, pending: bytes) -> bytes:
+    buf = ByteBuf(reader, pending)
+    parts: list[bytes] = []
     while True:
-        line = await reader.readuntil(b"\r\n")
-        if line in (b"\r\n", b"\n"):
-            break
-        text = line.decode("iso-8859-1").strip("\r\n")
-        if ":" not in text:
-            continue
-        name, value = text.split(":", 1)
-        raw.append((name, value.strip()))
-        key = name.lower()
-        folded[key] = value.strip() if key not in folded else folded[key] + ", " + value.strip()
-    return start.decode("iso-8859-1").strip("\r\n"), folded, raw
+        size_line = await buf.readuntil()
+        size = int(size_line.split(b";", 1)[0].strip() or b"0", 16)
+        if size == 0:
+            while True:
+                trailer = await buf.readuntil()
+                if trailer == b"":
+                    break
+            return b"".join(parts)
+        parts.append(await buf.readexactly(size))
+        await buf.readexactly(2)
 
 
-async def _read_body(reader: asyncio.StreamReader, headers: dict[str, str]) -> bytes:
-    if headers.get("transfer-encoding", "").lower().find("chunked") != -1:
-        chunks: list[bytes] = []
-        while True:
-            size_line = await reader.readuntil(b"\r\n")
-            size = int(size_line.split(b";", 1)[0].strip(), 16)
-            if size == 0:
-                await reader.readuntil(b"\r\n")
+async def read_full_body(reader: asyncio.StreamReader, headers: dict[str, str], pending: bytes) -> bytes:
+    if "chunked" in headers.get("transfer-encoding", "").lower():
+        return await read_chunked(reader, pending)
+    if "content-length" in headers:
+        need = int(headers["content-length"])
+        blob = pending
+        while len(blob) < need:
+            chunk = await reader.read(need - len(blob))
+            if not chunk:
                 break
-            data = await reader.readexactly(size)
-            await reader.readexactly(2)
-            chunks.append(data)
-        return b"".join(chunks)
-    length = headers.get("content-length")
-    if length is None:
-        return b""
-    return await reader.readexactly(int(length))
+            blob += chunk
+        return blob[:need]
+    blob = pending
+    while True:
+        chunk = await reader.read(65536)
+        if not chunk:
+            break
+        blob += chunk
+    return blob
 
 
-async def read_http(reader: asyncio.StreamReader, read_until_eof: bool = False) -> Optional[HttpMessage]:
-    parsed = await _read_headers(reader)
-    if parsed is None:
-        return None
-    start, headers, raw = parsed
-    if (
-        read_until_eof
-        and "content-length" not in headers
-        and "chunked" not in headers.get("transfer-encoding", "").lower()
-    ):
-        body = await reader.read()
-    else:
-        body = await _read_body(reader, headers)
-    return HttpMessage(start, headers, raw, body)
-
-
-def encode_request(message: HttpMessage, upstream_host: str) -> bytes:
-    lines = [message.start]
-    for name, value in message.raw_headers:
+def encode_request(head: bytes, body: bytes, upstream_host: str, upgrade: bool) -> bytes:
+    start, raw, _headers = parse_headers(head)
+    lines = [start]
+    for name, value in raw:
         key = name.lower()
-        if key == "host":
+        if key == "host" or key == "accept-encoding":
             continue
-        if not message.upgrade and key in HOP_BY_HOP:
+        if not upgrade and (key in HOP_BY_HOP or key == "content-length"):
             continue
         lines.append(f"{name}: {value}")
     lines.append(f"Host: {upstream_host}")
-    if not message.upgrade:
+    if upgrade:
+        lines.append("Connection: Upgrade")
+    else:
+        lines.append("Accept-Encoding: identity")
         lines.append("Connection: close")
-        if message.body:
-            lines.append(f"Content-Length: {len(message.body)}")
-    return ("\r\n".join(lines) + "\r\n\r\n").encode("iso-8859-1") + message.body
+        if body:
+            lines.append(f"Content-Length: {len(body)}")
+    return ("\r\n".join(lines) + "\r\n\r\n").encode("iso-8859-1") + body
 
 
-def encode_response(start: str, raw_headers: list[tuple[str, str]], body: bytes, prefix: str, content_type: str) -> bytes:
+def encode_rewritten(
+    start: str,
+    raw_headers: list[tuple[str, str]],
+    body: bytes,
+    prefix: str,
+    digest: str,
+) -> bytes:
     lines = [start]
     for name, value in raw_headers:
         key = name.lower()
-        if key in HOP_BY_HOP or key == "content-length":
+        if key in HOP_BY_HOP or key in ("content-length", "content-encoding"):
             continue
         if key == "location":
             value = rewrite_location(value, prefix)
         elif key == "set-cookie":
             value = rewrite_set_cookie(value, prefix)
-        elif key == "content-security-policy":
-            value = relax_csp(value)
+        elif key == "content-security-policy" and digest:
+            value = add_script_hash(value, digest)
         lines.append(f"{name}: {value}")
-    if "text/html" in content_type:
-        lines.append(f"Content-Length: {len(body)}")
-    else:
-        lines.append(f"Content-Length: {len(body)}")
+    lines.append(f"Content-Length: {len(body)}")
     lines.append("Connection: close")
     return ("\r\n".join(lines) + "\r\n\r\n").encode("iso-8859-1") + body
 
 
-async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, first: bytes = b"") -> None:
     try:
+        if first:
+            writer.write(first)
+            await writer.drain()
         while True:
             data = await reader.read(65536)
             if not data:
@@ -376,52 +432,101 @@ async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
             pass
 
 
+def request_path(start: str) -> str:
+    parts = start.split(" ")
+    return parts[1] if len(parts) > 1 else "/"
+
+
+async def send_error(writer: asyncio.StreamWriter, message: str) -> None:
+    body = message.encode("utf-8", errors="replace")
+    writer.write(
+        b"HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: "
+        + str(len(body)).encode()
+        + b"\r\nConnection: close\r\n\r\n"
+        + body
+    )
+    await writer.drain()
+
+
 def make_handler(upstream_host: str, upstream_port: int):
     async def handle(client_reader: asyncio.StreamReader, client_writer: asyncio.StreamWriter) -> None:
+        path = "-"
+        wrote = False
         try:
-            request = await read_http(client_reader)
-            if request is None:
+            head, pending = await read_head(client_reader)
+            if not head:
                 return
-            prefix = normalize_prefix(request.headers.get("x-ingress-path", ""))
-            try:
-                upstream_reader, upstream_writer = await asyncio.open_connection(upstream_host, upstream_port)
-            except OSError as exc:
-                body = f"OpenCode upstream unavailable: {exc}\n".encode()
-                client_writer.write(
-                    b"HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/plain\r\nContent-Length: "
-                    + str(len(body)).encode()
-                    + b"\r\nConnection: close\r\n\r\n"
-                    + body
-                )
-                await client_writer.drain()
-                return
+            start, _raw, headers = parse_headers(head)
+            path = request_path(start)
+            prefix = normalize_prefix(headers.get("x-ingress-path", ""))
+            upgrade = is_upgrade(headers)
+            body = b""
+            if not upgrade and (
+                "chunked" in headers.get("transfer-encoding", "").lower()
+                or "content-length" in headers
+            ):
+                body = await read_full_body(client_reader, headers, pending)
+                pending = b""
 
+            upstream_reader, upstream_writer = await asyncio.open_connection(upstream_host, upstream_port)
             host_header = f"{upstream_host}:{upstream_port}"
-            upstream_writer.write(encode_request(request, host_header))
+            upstream_writer.write(encode_request(head, body, host_header, upgrade))
             await upstream_writer.drain()
 
-            if request.upgrade:
+            if upgrade:
+                wrote = True
+                print(f"[INFO] {path} websocket", flush=True)
                 await asyncio.gather(
-                    pipe(client_reader, upstream_writer),
+                    pipe(client_reader, upstream_writer, pending),
                     pipe(upstream_reader, client_writer),
                 )
                 return
 
-            response = await read_http(upstream_reader, read_until_eof=True)
-            if response is None:
+            response_head, response_pending = await read_head(upstream_reader)
+            if not response_head:
+                await send_error(client_writer, "opencode proxy: empty response\n")
+                wrote = True
                 return
-            content_type = response.headers.get("content-type", "")
-            body = response.body
-            if "text/html" in content_type.lower() and body:
-                text = body.decode("utf-8", errors="replace")
-                nonce = nonce_from(response.headers, text)
-                text = rewrite_html(text, prefix, nonce)
-                body = text.encode("utf-8")
-            client_writer.write(encode_response(response.start, response.raw_headers, body, prefix, content_type))
+            status, response_raw, response_headers = parse_headers(response_head)
+            content_type = response_headers.get("content-type", "")
+            kind = should_rewrite(path, content_type)
+            if kind:
+                payload = await read_full_body(upstream_reader, response_headers, response_pending)
+                payload = decode_body(payload, response_headers)
+                text = payload.decode("utf-8", errors="replace")
+                digest = ""
+                if kind == "html":
+                    text, digest = rewrite_html(text, prefix)
+                else:
+                    text = rewrite_js(text, prefix)
+                rewritten = text.encode("utf-8")
+                client_writer.write(encode_rewritten(status, response_raw, rewritten, prefix, digest))
+                await client_writer.drain()
+                wrote = True
+                print(f"[INFO] {path} {status} rewritten {kind} {len(rewritten)}", flush=True)
+                upstream_writer.close()
+                return
+
+            client_writer.write(response_head + response_pending)
             await client_writer.drain()
+            wrote = True
+            print(f"[INFO] {path} {status} stream", flush=True)
+            await pipe(upstream_reader, client_writer)
             upstream_writer.close()
-        except (asyncio.IncompleteReadError, ConnectionError, asyncio.TimeoutError):
-            pass
+        except (asyncio.IncompleteReadError, ConnectionError, asyncio.TimeoutError) as exc:
+            print(f"[WARN] {path} {type(exc).__name__}", flush=True)
+            if not wrote:
+                try:
+                    await send_error(client_writer, "opencode proxy: connection closed\n")
+                except Exception:
+                    pass
+        except Exception as exc:
+            print(f"[ERROR] {path} {type(exc).__name__}: {exc}", flush=True)
+            if not wrote:
+                try:
+                    await send_error(client_writer, f"opencode proxy: {type(exc).__name__}\n")
+                except Exception:
+                    pass
         finally:
             try:
                 client_writer.close()
@@ -441,30 +546,50 @@ async def serve(listen_host: str, listen_port: int, upstream_host: str, upstream
 
 
 def self_test() -> None:
-    sample = '<head><script src="/_assets/app.js"></script><a href="/settings">x</a></head>'
-    rewritten = rewrite_html(sample, "/api/hassio_ingress/abc", "n1")
-    assert "/api/hassio_ingress/abc/_assets/app.js" in rewritten, rewritten
-    assert "/api/hassio_ingress/abc/settings" in rewritten, rewritten
-    assert 'nonce="n1"' in rewritten
-    assert rewrite_location("/session/1", "/api/hassio_ingress/abc") == "/api/hassio_ingress/abc/session/1"
-    assert rewrite_set_cookie("sid=1; Path=/; HttpOnly", "/api/hassio_ingress/abc").endswith("Path=/api/hassio_ingress/abc/; HttpOnly") or "Path=/api/hassio_ingress/abc/" in rewrite_set_cookie(
-        "sid=1; Path=/; HttpOnly", "/api/hassio_ingress/abc"
+    sample, digest = rewrite_html(
+        '<head><script src="/_assets/app.js"></script></head>',
+        "/api/hassio_ingress/abc",
     )
-    assert normalize_prefix("/api/hassio_ingress/abc/") == "/api/hassio_ingress/abc"
+    assert "/api/hassio_ingress/abc/_assets/app.js" in sample, sample
+    assert "globalThis.__ocPath" in sample
+    assert digest
+    csp = add_script_hash(
+        "default-src 'self'; script-src 'self' 'sha256-AAAA'; style-src 'self'",
+        digest,
+    )
+    assert f"'sha256-{digest}'" in csp
+    js = rewrite_js(
+        "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}",
+        "/api/hassio_ingress/abc",
+    )
+    assert "globalThis.__ocPath()" in js
+    assert "window.location.pathname" not in js
+    assert 'location.origin+"/api/hassio_ingress/abc"' in js
 
     async def scenario() -> None:
-        events: asyncio.Queue[bytes] = asyncio.Queue()
-
         async def upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-            message = await read_http(reader)
-            assert message is not None
-            body = b"<head><script src=\"/_assets/app.js\"></script></head>"
-            payload = (
-                b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: "
-                + str(len(body)).encode()
-                + b"\r\nSet-Cookie: sid=1; Path=/\r\nConnection: close\r\n\r\n"
-                + body
-            )
+            head, pending = await read_head(reader)
+            start, _raw, headers = parse_headers(head)
+            if headers.get("content-length"):
+                await read_full_body(reader, headers, pending)
+            path = request_path(start)
+            if path == "/app.js":
+                body = b"function hq(){return location.origin} location.pathname"
+                payload = (
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/javascript\r\nContent-Length: "
+                    + str(len(body)).encode()
+                    + b"\r\nContent-Encoding: identity\r\nConnection: close\r\n\r\n"
+                    + body
+                )
+            else:
+                body = b"<head><script type=\"module\" src=\"/_assets/app.js\"></script></head>"
+                chunk = format(len(body), "x").encode() + b"\r\n" + body + b"\r\n0\r\n\r\n"
+                payload = (
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n"
+                    b"Content-Security-Policy: default-src 'self'; script-src 'self'\r\n"
+                    b"Connection: close\r\n\r\n"
+                    + chunk
+                )
             writer.write(payload)
             await writer.drain()
             writer.close()
@@ -473,28 +598,40 @@ def self_test() -> None:
         upstream_port = upstream_server.sockets[0].getsockname()[1]
         proxy = await asyncio.start_server(make_handler("127.0.0.1", upstream_port), "127.0.0.1", 0)
         proxy_port = proxy.sockets[0].getsockname()[1]
-        reader, writer = await asyncio.open_connection("127.0.0.1", proxy_port)
-        req = (
-            "GET / HTTP/1.1\r\n"
-            "Host: ha.local\r\n"
-            "X-Ingress-Path: /api/hassio_ingress/abc\r\n"
-            "Connection: close\r\n\r\n"
-        ).encode()
-        writer.write(req)
-        await writer.drain()
-        data = await reader.read(-1)
-        text = data.decode("utf-8", errors="replace")
+
+        async def exchange(raw: bytes) -> bytes:
+            reader, writer = await asyncio.open_connection("127.0.0.1", proxy_port)
+            writer.write(raw)
+            await writer.drain()
+            data = await reader.read(-1)
+            writer.close()
+            return data
+
+        page = await exchange(
+            b"GET / HTTP/1.1\r\nHost: ha.local\r\nX-Ingress-Path: /api/hassio_ingress/abc\r\n"
+            b"Accept-Encoding: gzip\r\nConnection: close\r\n\r\n"
+        )
+        text = page.decode("utf-8", errors="replace")
+        assert "Transfer-Encoding" not in text.split("\r\n\r\n", 1)[0]
+        assert "Content-Encoding" not in text.split("\r\n\r\n", 1)[0]
         assert "/api/hassio_ingress/abc/_assets/app.js" in text, text
-        assert "Path=/api/hassio_ingress/abc/" in text, text
-        assert "Location.prototype" in text
-        writer.close()
+        assert "sha256-" in text
+        assert "globalThis.__ocPath" in text
+
+        script = await exchange(
+            b"GET /app.js HTTP/1.1\r\nHost: ha.local\r\nX-Ingress-Path: /api/hassio_ingress/abc\r\n"
+            b"Connection: close\r\n\r\n"
+        )
+        script_text = script.decode("utf-8", errors="replace")
+        assert "globalThis.__ocPath()" in script_text, script_text
+        assert 'location.origin+"/api/hassio_ingress/abc"' in script_text
+
         proxy.close()
         upstream_server.close()
         await proxy.wait_closed()
         await upstream_server.wait_closed()
-        await events.put(b"ok")
 
-    asyncio.run(scenario())
+    asyncio.run(asyncio.wait_for(scenario(), 5))
     print("ingress-proxy self-test ok")
 
 

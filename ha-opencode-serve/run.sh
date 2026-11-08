@@ -261,8 +261,23 @@ echo "   Auto-approve : $AUTO_APPROVE"
 echo "   Migrate v1   : $MIGRATE_V1"
 opencode --version || true
 
+OPENCODE_PID=""
+PROXY_PID=""
+cleanup() {
+    echo "[INFO] Shutting down ha-opencode-serve..."
+    if [ -n "${PROXY_PID}" ]; then
+        kill "$PROXY_PID" 2>/dev/null || true
+    fi
+    if [ -n "${OPENCODE_PID}" ]; then
+        kill "$OPENCODE_PID" 2>/dev/null || true
+    fi
+    wait "${PROXY_PID:-}" "${OPENCODE_PID:-}" 2>/dev/null || true
+    exit 0
+}
+trap cleanup SIGTERM SIGINT SIGHUP
+
 cd "$OPENCODE_WORKSPACE"
-serve_cmd=(opencode serve --hostname 0.0.0.0 --port "$INGRESS_PORT" --print-logs)
+serve_cmd=(opencode serve --hostname 127.0.0.1 --port "$OPENCODE_UPSTREAM_PORT" --print-logs)
 if [ "$AUTO_APPROVE" = "true" ] && opencode serve --help 2>&1 | grep -q -- '--auto'; then
     serve_cmd+=(--auto)
     echo "[INFO] opencode serve accepts --auto; enabling it"
@@ -273,5 +288,38 @@ else
 fi
 
 echo "[INFO] Starting ${serve_cmd[*]}"
-echo "[INFO] Home Assistant ingress should reach 0.0.0.0:${INGRESS_PORT}"
-exec "${serve_cmd[@]}"
+"${serve_cmd[@]}" &
+OPENCODE_PID=$!
+
+ready=0
+for _ in $(seq 1 60); do
+    if ! kill -0 "$OPENCODE_PID" 2>/dev/null; then
+        echo "[ERROR] opencode serve exited before it started listening"
+        wait "$OPENCODE_PID" || true
+        exit 1
+    fi
+    if (echo >/dev/tcp/127.0.0.1/"$OPENCODE_UPSTREAM_PORT") >/dev/null 2>&1; then
+        ready=1
+        break
+    fi
+    sleep 0.5
+done
+
+if [ "$ready" -ne 1 ]; then
+    echo "[ERROR] opencode serve did not open port $OPENCODE_UPSTREAM_PORT"
+    kill "$OPENCODE_PID" 2>/dev/null || true
+    exit 1
+fi
+
+echo "[INFO] OpenCode is listening on 127.0.0.1:${OPENCODE_UPSTREAM_PORT}"
+echo "[INFO] Sidebar proxy on 0.0.0.0:${INGRESS_PORT}"
+python3 /usr/local/bin/ingress-proxy.py &
+PROXY_PID=$!
+
+set +e
+wait -n "$OPENCODE_PID" "$PROXY_PID"
+status=$?
+set -e
+kill "$PROXY_PID" "$OPENCODE_PID" 2>/dev/null || true
+wait "$PROXY_PID" "$OPENCODE_PID" 2>/dev/null || true
+exit "$status"
