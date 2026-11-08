@@ -232,7 +232,7 @@ def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
             return match.group(0)
         quote = match.group("q")
         if "/_assets/" in path and "?" not in path:
-            path = path + "?oc=204"
+            path = path + "?oc=205"
         return f"{match.group('attr')}={quote}{prefix}{path}{quote}"
 
     html = _ATTR_RE.sub(repl, html)
@@ -284,7 +284,14 @@ def rewrite_js(text: str, prefix: str) -> str:
         "function(e){return`/`+e}",
         "function(e){return`" + prefix + "/`+e}",
     )
-    text = re.sub(r"(_assets/[A-Za-z0-9._-]+\.js)(?!\?)", r"\1?oc=204", text)
+    # Every JS import must keep the same query as the entry script. A relative
+    # import without it loads a second copy of the module, and Solid context
+    # such as MetaProvider does not cross that copy.
+    text = re.sub(
+        r"([A-Za-z0-9._/-]*[A-Za-z0-9_-]\.js)(?!\?|\.map)",
+        r"\1?oc=205",
+        text,
+    )
     text = prefix_root_assets(text, prefix)
     needle = "function hq(){return location.origin}"
     if needle in text:
@@ -638,7 +645,7 @@ def self_test() -> None:
     assert f"'sha256-{digest}'" in csp
     js = rewrite_js(
         "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}"
-        "function(e){return`/`+e}get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\")",
+        "function(e){return`/`+e}get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\");import{n as e}from\"./index-C8GATERM.js\";//# sourceMappingURL=index-C8GATERM.js.map",
         "/api/hassio_ingress/abc",
     )
     assert "globalThis.__ocPath()" in js
@@ -646,7 +653,10 @@ def self_test() -> None:
     assert 'location.origin+"/api/hassio_ingress/abc"' in js
     assert "globalThis.__ocPath(a())" in js
     assert "globalThis.__ocPath(e)" in js
-    assert "_assets/current-abc.js?oc=204" in js
+    assert "_assets/current-abc.js?oc=205" in js
+    assert 'from"./index-C8GATERM.js?oc=205"' in js
+    assert "index-C8GATERM.js.map" in js
+    assert "index-C8GATERM.js?oc=205.map" not in js
     assert "function(e){return`/api/hassio_ingress/abc/`+e}" in js
     os.environ["OPENCODE_PASSWORD"] = "secret"
     os.environ["OPENCODE_SERVER_USERNAME"] = "opencode"

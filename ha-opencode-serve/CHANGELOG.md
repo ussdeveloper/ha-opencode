@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.6] – 2026-11-08
+
+### Fixed
+- Opening a session no longer throws `<MetaProvider /> should be in the tree`. The cache-bust query was only on the first script, so the session page loaded a second copy of the app.
+
 ## [2.0.5] – 2026-11-08
 
 ### Fixed
