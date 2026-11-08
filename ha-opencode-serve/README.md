@@ -12,6 +12,7 @@ Slug: `ha-opencode-serve`. Architectures: `amd64`, `aarch64`. OpenCode 2 does no
 4. A small proxy listens on port `4096` (ingress). Home Assistant strips `/api/hassio_ingress/<token>` and sends it in `X-Ingress-Path`. The proxy puts that prefix back on asset, API, and WebSocket URLs so the page works in the sidebar.
 5. The proxy signs the sidebar in to OpenCode. The UI does not ask for a server password.
 6. Leaving the sidebar unloads the page, and the next visit loads it again. The add-on keeps OpenCode's last-session memory on, so that visit opens the same session.
+7. Live session updates are sent without proxy buffering, so a reply that contains an image still finishes when Home Assistant is behind Nginx Proxy Manager. That proxy host still needs Websockets Support.
 
 ## Sign-in
 

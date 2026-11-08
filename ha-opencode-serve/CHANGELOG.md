@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.9] – 2026-11-08
+
+### Fixed
+- The sidebar no longer stays on "working" after a message that contains an image. The live event stream is marked so Nginx Proxy Manager does not buffer and then drop it.
+
 ## [2.0.8] – 2026-11-08
 
 ### Fixed

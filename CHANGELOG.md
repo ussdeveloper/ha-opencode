@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.9 – 2026-11-08
+
+A reply that included an image left the sidebar on "working". The event stream is no longer buffered by the proxy in front of Home Assistant.
+
 ## OpenCode 2 add-on – 2.0.8 – 2026-11-08
 
 The sidebar reloads when you leave it. It now opens the same session again instead of the start page.

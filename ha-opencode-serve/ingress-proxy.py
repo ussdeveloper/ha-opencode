@@ -386,6 +386,20 @@ def is_upgrade(headers: dict[str, str]) -> bool:
     return "upgrade" in headers.get("connection", "").lower() or bool(headers.get("upgrade"))
 
 
+def mark_unbuffered(head: bytes) -> bytes:
+    """Tell Nginx Proxy Manager not to buffer this response.
+
+    A session event that carries an image is one large streamed chunk. With
+    buffering left on, the proxy in front of Home Assistant drops that stream
+    and the sidebar stays on "working".
+    """
+    if not head.endswith(b"\r\n\r\n"):
+        return head
+    if b"\r\nx-accel-buffering:" in head.lower():
+        return head
+    return head[:-2] + b"X-Accel-Buffering: no\r\n\r\n"
+
+
 def decode_body(payload: bytes, headers: dict[str, str]) -> bytes:
     encoding = headers.get("content-encoding", "").lower()
     if "gzip" in encoding:
@@ -605,7 +619,7 @@ def make_handler(upstream_host: str, upstream_port: int):
                 upstream_writer.close()
                 return
 
-            client_writer.write(response_head + response_pending)
+            client_writer.write(mark_unbuffered(response_head) + response_pending)
             await client_writer.drain()
             wrote = True
             print(f"[INFO] {path} {status} stream", flush=True)
@@ -677,6 +691,9 @@ def self_test() -> None:
     assert "vq();" in js
     assert "B(()=>y(yq,{}))" in js
     assert "globalThis.__ocPath(e.pathname)" in js
+    marked = mark_unbuffered(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n\r\n")
+    assert b"X-Accel-Buffering: no\r\n\r\n" in marked
+    assert mark_unbuffered(marked) == marked
     assert "function(e){return`/api/hassio_ingress/abc/`+e}" in js
     os.environ["OPENCODE_PASSWORD"] = "secret"
     os.environ["OPENCODE_SERVER_USERNAME"] = "opencode"
