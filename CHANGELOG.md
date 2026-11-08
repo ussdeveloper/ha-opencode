@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.0 – 2026-11-08
+
+New add-on directory `ha-opencode-serve` (the 0.1.x terminal add-on is unchanged). It runs OpenCode 2.2.6 in `serve` mode, shows the web UI in the sidebar, persists sessions on `/data`, and can copy sessions from the Terminal add-on when that data is on the host. Details: [ha-opencode-serve/CHANGELOG.md](ha-opencode-serve/CHANGELOG.md).
+
 ## [0.1.24] – 2026-07-08
 
 ### Fixed

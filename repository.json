@@ -3,6 +3,7 @@
   "url": "https://github.com/ussdeveloper/ha-opencode",
   "maintainer": "ussdeveloper",
   "addons": [
-    "ha-opencode"
+    "ha-opencode",
+    "ha-opencode-serve"
   ]
 }

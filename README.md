@@ -8,6 +8,11 @@
   <img src="screenshots/opencode-terminal.png" alt="OpenCode Terminal in Home Assistant" width="800">
 </p>
 
+This repository has two add-ons:
+
+- **OpenCode Terminal** (`ha-opencode`, 0.1.x) – web terminal and OpenCode in tmux. Documented below.
+- **OpenCode 2** (`ha-opencode-serve`, 2.0.0) – OpenCode 2.2 `opencode serve` in the sidebar, with session persistence and an optional copy of Terminal add-on sessions. See [ha-opencode-serve/README.md](ha-opencode-serve/README.md).
+
 **AI-powered terminal for Home Assistant** – full dev environment with OpenCode AI coding agent, available as an add-on in the sidebar panel. Unrestricted host access, SSH, add-on management, and more.
 
 ## ⚠️ Important Disclaimer

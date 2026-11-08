@@ -1,0 +1,129 @@
+name: "OpenCode 2"
+version: "2.0.0"
+slug: "ha-opencode-serve"
+description: >-
+  OpenCode 2 web UI for Home Assistant. Runs `opencode serve` (auto-approve)
+  in the sidebar, keeps sessions on the add-on volume, and can copy sessions
+  from the OpenCode Terminal add-on when that data is on the host.
+url: "https://github.com/ussdeveloper/ha-opencode"
+arch:
+  - aarch64
+  - amd64
+homeassistant_api: true
+hassio_api: true
+docker_api: true
+# host_network is left off on purpose. Ingress needs a stable container port.
+# Host commands still go through nsenter (host_pid) and the Docker socket.
+host_pid: true
+host_uts: true
+host_ipc: true
+host_dbus: true
+apparmor: false
+protected: false
+ingress: true
+ingress_port: 4096
+ingress_stream: true
+panel_icon: mdi:robot
+panel_title: OpenCode 2
+panel_admin: false
+startup: application
+boot: auto
+init: false
+stage: experimental
+ports:
+  4096/tcp: null
+ports_description:
+  4096/tcp: "OpenCode serve (ingress only; not published on the host)"
+map:
+  - config:rw
+  - ssl:ro
+  - share:rw
+  - backup:rw
+  - media:rw
+  - addons:rw
+privileged:
+  - SYS_ADMIN
+  - SYS_PTRACE
+options:
+  opencode_workspace: "/config"
+  opencode_model: ""
+  auto_approve: true
+  migrate_v1_sessions: true
+  opencode_system_prompt: |
+    You are an AI coding assistant running inside **ha-opencode-serve**, a Home
+    Assistant add-on. The user talks to you through the OpenCode 2 web UI
+    (`opencode serve`) in the Home Assistant sidebar. Permission requests that
+    are not explicitly denied are auto-approved.
+
+    Your job is to manage, configure, and extend this Home Assistant system.
+    You can edit /config, use the Supervisor API, Docker, and a host shell
+    (`host-shell`, `ha-host`, `ssh-host`).
+
+    ## Guiding principles
+    1. Safety first – backup before editing and validate before restarting.
+    2. Be precise – keep YAML indentation and syntax valid.
+    3. Explain changes – say what you are changing and why.
+    4. One change at a time – make incremental, testable modifications.
+    5. Prefer modern HA syntax – triggers/conditions/actions for automations.
+    6. Do not restart Home Assistant unless the user asks or the config checks out.
+    7. When a change could break the system, confirm first.
+
+    The user is a Home Assistant administrator.
+  opencode_rules: |
+    # ha-opencode-serve – Home Assistant rules
+
+    You are in the OpenCode 2 serve add-on. Workspace default is /config.
+    Sessions and the SQLite database live on the add-on volume (/data) and
+    survive restarts. Do not delete /data/opencode-local.
+
+    ## Paths
+    /config (rw) – Home Assistant configuration
+    /share (rw) – shared add-on data
+    /backup (rw) – snapshots
+    /media (rw) – media
+    /addons (rw) – local add-on source
+    /ssl (ro) – certificates
+    /var/run/docker.sock – Docker
+    /host – host root, when host PID namespace is available
+
+    ## Tools
+    ha-cli check|restart|logs|backup|docker-ps|exec|supervisor
+    host-shell <cmd> – one command on the HA OS host
+    ha-host – interactive host shell
+    ssh-host – SSH to the host (root@172.30.32.1:22222) after the first-start key install
+    backup-config [file] – copy a file to /backup/config-snapshots
+
+    ## Add-ons
+    Prefer `host-shell ha addons ...` so Supervisor keeps state:
+    host-shell ha addons list
+    host-shell ha addons install <slug>
+    host-shell ha addons restart <slug>
+    host-shell ha addons rebuild <slug>
+
+    ## Config edits
+    1. backup-config /config/configuration.yaml
+    2. Edit the file
+    3. ha-cli check
+    4. ha-cli restart only if the check is OK
+
+    ## Safety
+    1. Never edit configuration.yaml without a backup.
+    2. Always run ha-cli check after a config change.
+    3. Never restart Home Assistant core on invalid YAML.
+    4. Use triggers/conditions/actions for automations.
+    5. Do not delete files in /config without an explicit yes.
+    6. Host commands run as root on HA OS. Confirm before changing boot, network, or system files.
+    7. Auto-approve is on. Still follow these rules.
+
+    ## Supervisor API
+    curl -s -H "Authorization: Bearer $SUPERVISOR_TOKEN" http://supervisor/info
+    curl -s -H "Authorization: Bearer $SUPERVISOR_TOKEN" http://supervisor/addons
+  opencode_instructions: ""
+schema:
+  opencode_workspace: "str"
+  opencode_model: "str?"
+  auto_approve: "bool"
+  migrate_v1_sessions: "bool"
+  opencode_system_prompt: "str?"
+  opencode_rules: "str?"
+  opencode_instructions: "str?"
