@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.8] – 2026-11-08
+
+### Fixed
+- Opening the sidebar again returns to the session that was open. Home Assistant still reloads the page, and OpenCode was only remembering that place in an installed app.
+
 ## [2.0.7] – 2026-11-08
 
 ### Fixed

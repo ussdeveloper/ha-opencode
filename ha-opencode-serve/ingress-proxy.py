@@ -232,7 +232,7 @@ def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
             return match.group(0)
         quote = match.group("q")
         if "/_assets/" in path and "?" not in path:
-            path = path + "?oc=207"
+            path = path + "?oc=208"
         return f"{match.group('attr')}={quote}{prefix}{path}{quote}"
 
     html = _ATTR_RE.sub(repl, html)
@@ -289,7 +289,7 @@ def rewrite_js(text: str, prefix: str) -> str:
     # The entry tag and these imports must share one query, or the session page
     # loads a second copy of the app and MetaProvider is missing.
     def bust(match: re.Match[str]) -> str:
-        return f"{match.group('q')}{match.group('path')}?oc=207{match.group('q')}"
+        return f"{match.group('q')}{match.group('path')}?oc=208{match.group('q')}"
 
     text = re.sub(
         r"""(?P<q>["'`])(?P<path>(?:\./|\.\./|/|_assets/)[A-Za-z0-9._/-]*\.js)(?P=q)""",
@@ -304,6 +304,15 @@ def rewrite_js(text: str, prefix: str) -> str:
             "function hq(){return location.origin+" + json.dumps(prefix) + "}",
             1,
         )
+    # OpenCode restores the last session only in an installed PWA. The sidebar
+    # is a normal iframe, so that code never ran and every visit opened home.
+    text = text.replace("n&&vq()", "vq()", 1)
+    text = text.replace("n&&y(yq,{})", "y(yq,{})", 1)
+    text = text.replace(
+        "let t=e.pathname+e.search+e.hash;try{localStorage.setItem(gq,t)}",
+        "let t=globalThis.__ocPath(e.pathname)+e.search+e.hash;try{localStorage.setItem(gq,t)}",
+        1,
+    )
     return text
 
 
@@ -649,7 +658,7 @@ def self_test() -> None:
     assert f"'sha256-{digest}'" in csp
     js = rewrite_js(
         "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}"
-        "function(e){return`/`+e}get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\");import{n as e}from\"./index-C8GATERM.js\";e.toast.jsx;keep.json;//# sourceMappingURL=index-C8GATERM.js.map",
+        "function(e){return`/`+e}get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\");import{n as e}from\"./index-C8GATERM.js\";e.toast.jsx;keep.json;let n=_q();n&&vq();B(()=>n&&y(yq,{}));function yq(){let e=st();return D(()=>{let t=e.pathname+e.search+e.hash;try{localStorage.setItem(gq,t)}catch{}}),null}//# sourceMappingURL=index-C8GATERM.js.map",
         "/api/hassio_ingress/abc",
     )
     assert "globalThis.__ocPath()" in js
@@ -657,13 +666,17 @@ def self_test() -> None:
     assert 'location.origin+"/api/hassio_ingress/abc"' in js
     assert "globalThis.__ocPath(a())" in js
     assert "globalThis.__ocPath(e)" in js
-    assert "_assets/current-abc.js?oc=207" in js
-    assert 'from"./index-C8GATERM.js?oc=207"' in js
+    assert "_assets/current-abc.js?oc=208" in js
+    assert 'from"./index-C8GATERM.js?oc=208"' in js
     assert "e.toast.jsx" in js
     assert "keep.json" in js
-    assert "?oc=207x" not in js
+    assert "?oc=208x" not in js
     assert "index-C8GATERM.js.map" in js
-    assert "index-C8GATERM.js?oc=207.map" not in js
+    assert "index-C8GATERM.js?oc=208.map" not in js
+    assert "n&&vq()" not in js
+    assert "vq();" in js
+    assert "B(()=>y(yq,{}))" in js
+    assert "globalThis.__ocPath(e.pathname)" in js
     assert "function(e){return`/api/hassio_ingress/abc/`+e}" in js
     os.environ["OPENCODE_PASSWORD"] = "secret"
     os.environ["OPENCODE_SERVER_USERNAME"] = "opencode"

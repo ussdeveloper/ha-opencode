@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.8 – 2026-11-08
+
+The sidebar reloads when you leave it. It now opens the same session again instead of the start page.
+
 ## OpenCode 2 add-on – 2.0.7 – 2026-11-08
 
 The sidebar went black because the cache-bust query was written into Solid's `.jsx` property and the app script could not parse.
