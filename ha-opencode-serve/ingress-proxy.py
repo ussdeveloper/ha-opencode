@@ -139,6 +139,26 @@ INJECT_JS = r"""
     return xo.apply(this, args);
   };
 
+  function patchProp(proto, prop) {
+    var d = Object.getOwnPropertyDescriptor(proto, prop);
+    if (!d || !d.set || !d.configurable) return;
+    Object.defineProperty(proto, prop, {
+      configurable: true,
+      enumerable: d.enumerable,
+      get: d.get,
+      set: function (value) { return d.set.call(this, fix(value)); },
+    });
+  }
+  if (window.HTMLLinkElement) patchProp(HTMLLinkElement.prototype, "href");
+  if (window.HTMLScriptElement) patchProp(HTMLScriptElement.prototype, "src");
+  if (window.HTMLImageElement) patchProp(HTMLImageElement.prototype, "src");
+
+  var setAttr = Element.prototype.setAttribute;
+  Element.prototype.setAttribute = function (name, value) {
+    if ((name === "src" || name === "href" || name === "action") && typeof value === "string") value = fix(value);
+    return setAttr.call(this, name, value);
+  };
+
   if (navigator.serviceWorker && navigator.serviceWorker.register) {
     navigator.serviceWorker.register = function () { return Promise.resolve(); };
   }
@@ -212,7 +232,7 @@ def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
             return match.group(0)
         quote = match.group("q")
         if "/_assets/" in path and "?" not in path:
-            path = path + "?oc=203"
+            path = path + "?oc=204"
         return f"{match.group('attr')}={quote}{prefix}{path}{quote}"
 
     html = _ATTR_RE.sub(repl, html)
@@ -224,6 +244,25 @@ def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
     else:
         html = tag + html
     return html, digest
+
+
+def prefix_root_assets(text: str, prefix: str) -> str:
+    """Prefix root-absolute /_assets/ paths. Leave ./_assets/ relative imports alone."""
+    marker = prefix + "/_assets/"
+    sentinel = "\u0000INGRESS_ASSET\u0000"
+    text = text.replace(marker, sentinel)
+
+    def repl(match: re.Match[str]) -> str:
+        return match.group(1) + marker
+
+    text = re.sub(r"""(^|["'`\s(=])/_assets/""", repl, text)
+    return text.replace(sentinel, marker)
+
+
+def rewrite_css(text: str, prefix: str) -> str:
+    if not prefix:
+        return text
+    return prefix_root_assets(text, prefix)
 
 
 def rewrite_js(text: str, prefix: str) -> str:
@@ -239,7 +278,14 @@ def rewrite_js(text: str, prefix: str) -> str:
         "bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);",
         "bc=(e,t)=>{e=globalThis.__ocPath(e);let n=e.split(`/`).filter(Boolean);",
     )
-    text = re.sub(r"(_assets/[A-Za-z0-9._-]+\.js)(?!\?)", r"\1?oc=203", text)
+    # Vite's preload helper does `return "/" + file`, which throws away the
+    # ingress directory and asks Home Assistant for /_assets/...
+    text = text.replace(
+        "function(e){return`/`+e}",
+        "function(e){return`" + prefix + "/`+e}",
+    )
+    text = re.sub(r"(_assets/[A-Za-z0-9._-]+\.js)(?!\?)", r"\1?oc=204", text)
+    text = prefix_root_assets(text, prefix)
     needle = "function hq(){return location.origin}"
     if needle in text:
         text = text.replace(
@@ -338,6 +384,8 @@ def should_rewrite(path: str, content_type: str) -> str:
         return "html"
     if "javascript" in lowered or path.split("?", 1)[0].endswith(".js"):
         return "js"
+    if "text/css" in lowered or path.split("?", 1)[0].endswith(".css"):
+        return "css"
     return ""
 
 
@@ -509,6 +557,8 @@ def make_handler(upstream_host: str, upstream_port: int):
                 digest = ""
                 if kind == "html":
                     text, digest = rewrite_html(text, prefix)
+                elif kind == "css":
+                    text = rewrite_css(text, prefix)
                 else:
                     text = rewrite_js(text, prefix)
                 rewritten = text.encode("utf-8")
@@ -572,7 +622,7 @@ def self_test() -> None:
     assert f"'sha256-{digest}'" in csp
     js = rewrite_js(
         "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}"
-        "get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\")",
+        "function(e){return`/`+e}get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\")",
         "/api/hassio_ingress/abc",
     )
     assert "globalThis.__ocPath()" in js
@@ -580,7 +630,8 @@ def self_test() -> None:
     assert 'location.origin+"/api/hassio_ingress/abc"' in js
     assert "globalThis.__ocPath(a())" in js
     assert "globalThis.__ocPath(e)" in js
-    assert "_assets/current-abc.js?oc=203" in js
+    assert "_assets/current-abc.js?oc=204" in js
+    assert "function(e){return`/api/hassio_ingress/abc/`+e}" in js
 
     async def scenario() -> None:
         async def upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

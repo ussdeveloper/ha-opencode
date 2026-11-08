@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.4 – 2026-11-08
+
+Stylesheet preload was still asking the Home Assistant root for `/_assets/*.css`. Those URLs now stay on the ingress path.
+
 ## OpenCode 2 add-on – 2.0.3 – 2026-11-08
 
 The sidebar reached OpenCode and then failed with "Unrecognised route". The router now sees `/` instead of the ingress path.

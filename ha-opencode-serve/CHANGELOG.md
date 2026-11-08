@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.4] – 2026-11-08
+
+### Fixed
+- Stylesheet preload no longer requests `/_assets/*.css` from the Home Assistant root. The OpenCode preloader builds that path in code, and link, script, and image URLs aimed at the domain root now stay on the ingress path.
+
 ## [2.0.3] – 2026-11-08
 
 ### Fixed
