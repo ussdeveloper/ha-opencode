@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.7] – 2026-11-08
+
+### Fixed
+- The sidebar is no longer a black screen. The previous cache-bust also rewrote Solid's `.jsx` property, so the app script failed to parse.
+
 ## [2.0.6] – 2026-11-08
 
 ### Fixed

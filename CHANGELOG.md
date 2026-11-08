@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.7 – 2026-11-08
+
+The sidebar went black because the cache-bust query was written into Solid's `.jsx` property and the app script could not parse.
+
 ## OpenCode 2 add-on – 2.0.6 – 2026-11-08
 
 Creating a session failed with `<MetaProvider /> should be in the tree` because the session bundle loaded a second copy of the app script.
