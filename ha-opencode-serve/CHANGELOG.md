@@ -1,5 +1,12 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.1] – 2026-11-08
+
+### Fixed
+- Sidebar ingress talks to `opencode serve` on port 4096 directly. The extra HTTP proxy answered in a way Supervisor treated as a bad gateway.
+- Session copy from the Terminal add-on also looks in the current Supervisor data path `/mnt/data/supervisor/apps/data`.
+- Base image is `ghcr.io/home-assistant/base` in the Dockerfile. `build.json` is no longer used.
+
 ## [2.0.0] – 2026-11-08
 
 ### Added

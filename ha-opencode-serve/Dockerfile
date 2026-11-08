@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1
 # ha-opencode-serve – OpenCode 2 web UI for Home Assistant
 # OpenCode 2 publishes musl binaries for amd64 and aarch64 only.
-ARG BUILD_FROM=alpine:3.20
-FROM ${BUILD_FROM}
+FROM ghcr.io/home-assistant/base:latest
 
 ARG TARGETARCH
 ARG BUILD_ARCH
@@ -71,8 +70,8 @@ ENV LANG=C.UTF-8 \
     OPENCODE_UPSTREAM_PORT=4097 \
     INGRESS_PORT=4096
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4096/', timeout=4)"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD python3 -c "import socket,sys; s=socket.create_connection(('127.0.0.1',4096),4); s.sendall(b'GET / HTTP/1.0\r\n\r\n'); sys.exit(0 if s.recv(5)==b'HTTP/' else 1)"
 
 EXPOSE 4096
 WORKDIR /config
