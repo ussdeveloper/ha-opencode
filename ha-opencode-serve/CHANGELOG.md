@@ -1,5 +1,10 @@
 # Changelog – ha-opencode-serve
 
+## [2.0.3] – 2026-11-08
+
+### Fixed
+- The sidebar showed "Unrecognised route" because the app router kept the ingress path. Asset URLs are cache-busted so the browser does not keep the previous scripts.
+
 ## [2.0.2] – 2026-11-08
 
 ### Fixed

@@ -51,8 +51,8 @@ INJECT_JS = r"""
     return P + path;
   }
 
-  globalThis.__ocPath = function () {
-    var path = location.pathname || "/";
+  globalThis.__ocPath = function (input) {
+    var path = typeof input === "string" ? input : (location.pathname || "/");
     if (path === P || path === P + "/") return "/";
     if (path.indexOf(P + "/") === 0) {
       var rest = path.slice(P.length);
@@ -211,6 +211,8 @@ def rewrite_html(html: str, prefix: str) -> tuple[str, str]:
         if path.startswith("//") or path == prefix or path.startswith(prefix + "/"):
             return match.group(0)
         quote = match.group("q")
+        if "/_assets/" in path and "?" not in path:
+            path = path + "?oc=203"
         return f"{match.group('attr')}={quote}{prefix}{path}{quote}"
 
     html = _ATTR_RE.sub(repl, html)
@@ -229,6 +231,15 @@ def rewrite_js(text: str, prefix: str) -> str:
         return text
     text = text.replace("window.location.pathname", "globalThis.__ocPath()")
     text = text.replace("location.pathname", "globalThis.__ocPath()")
+    text = text.replace(
+        "get pathname(){return a()}",
+        "get pathname(){return globalThis.__ocPath(a())}",
+    )
+    text = text.replace(
+        "bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);",
+        "bc=(e,t)=>{e=globalThis.__ocPath(e);let n=e.split(`/`).filter(Boolean);",
+    )
+    text = re.sub(r"(_assets/[A-Za-z0-9._-]+\.js)(?!\?)", r"\1?oc=203", text)
     needle = "function hq(){return location.origin}"
     if needle in text:
         text = text.replace(
@@ -398,7 +409,7 @@ def encode_rewritten(
     lines = [start]
     for name, value in raw_headers:
         key = name.lower()
-        if key in HOP_BY_HOP or key in ("content-length", "content-encoding"):
+        if key in HOP_BY_HOP or key in ("content-length", "content-encoding", "cache-control", "expires"):
             continue
         if key == "location":
             value = rewrite_location(value, prefix)
@@ -407,6 +418,7 @@ def encode_rewritten(
         elif key == "content-security-policy" and digest:
             value = add_script_hash(value, digest)
         lines.append(f"{name}: {value}")
+    lines.append("Cache-Control: no-cache")
     lines.append(f"Content-Length: {len(body)}")
     lines.append("Connection: close")
     return ("\r\n".join(lines) + "\r\n\r\n").encode("iso-8859-1") + body
@@ -559,12 +571,16 @@ def self_test() -> None:
     )
     assert f"'sha256-{digest}'" in csp
     js = rewrite_js(
-        "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}",
+        "function Zo(){let e=window.location.pathname+window.location.search}function hq(){return location.origin}"
+        "get pathname(){return a()}bc=(e,t)=>{let n=e.split(`/`).filter(Boolean);import(\"./_assets/current-abc.js\")",
         "/api/hassio_ingress/abc",
     )
     assert "globalThis.__ocPath()" in js
     assert "window.location.pathname" not in js
     assert 'location.origin+"/api/hassio_ingress/abc"' in js
+    assert "globalThis.__ocPath(a())" in js
+    assert "globalThis.__ocPath(e)" in js
+    assert "_assets/current-abc.js?oc=203" in js
 
     async def scenario() -> None:
         async def upstream(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

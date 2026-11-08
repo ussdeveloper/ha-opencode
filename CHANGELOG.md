@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## OpenCode 2 add-on – 2.0.3 – 2026-11-08
+
+The sidebar reached OpenCode and then failed with "Unrecognised route". The router now sees `/` instead of the ingress path.
+
 ## OpenCode 2 add-on – 2.0.2 – 2026-11-08
 
 The sidebar page loaded as an empty frame because OpenCode's scripts were requested from the Home Assistant root. 2.0.2 rewrites those URLs onto the ingress path.
