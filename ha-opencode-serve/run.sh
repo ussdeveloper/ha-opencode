@@ -250,8 +250,25 @@ setup_opencode_config() {
         + (if $model != "" then {model: $model} else {} end)
         + (if $auto then {permissions: [{action: "*", resource: "*", effect: "allow"}]} else {} end)' \
         > "$config_dir/opencode.json"
-    cp "$config_dir/opencode.json" "$OPENCODE_WORKSPACE/opencode.json"
-    echo "[INFO] OpenCode config written to $config_dir and $OPENCODE_WORKSPACE"
+
+    # Project-level copy for the workspace. OpenCode 2 already reads the global
+    # config above, so this file only needs the instructions (and model).
+    # It must stay parseable by OpenCode v1 too: the legacy "OpenCode Terminal"
+    # add-on (ha-opencode) shares /config and fails to start when it finds
+    # v2-only keys such as "permissions" (Configuration is invalid ->
+    # Unrecognized key: permissions).
+    jq -n \
+        --arg prompt "$config_dir/system-prompt.md" \
+        --arg extra "$extra" \
+        --arg model "$OPENCODE_MODEL" \
+        '{
+            "$schema": "https://opencode.ai/config.json",
+            autoupdate: false,
+            instructions: ([$prompt] + (if $extra != "" then [$extra] else [] end))
+        }
+        + (if $model != "" then {model: $model} else {} end)' \
+        > "$OPENCODE_WORKSPACE/opencode.json"
+    echo "[INFO] OpenCode config written to $config_dir (v2) and $OPENCODE_WORKSPACE (v1-compatible)"
 }
 setup_opencode_config
 
