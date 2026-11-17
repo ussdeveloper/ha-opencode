@@ -455,15 +455,15 @@ setup_opencode_config() {
     mkdir -p "$config_dir"
 
     # ── AGENTS.md ──────────────────────────────────────────────
-    # Write to BOTH locations so OpenCode can auto-discover rules:
-    #  - /config/AGENTS.md  ← project root (auto-discovered first)
-    #  - ~/.config/opencode/AGENTS.md ← global fallback
+    # Kept in this add-on's own config dir only. /config is shared with the
+    # OpenCode 2 add-on, and two add-ons overwriting the same AGENTS.md make
+    # the rules depend on which one started last.
     if [ -n "$OPENCODE_RULES" ]; then
-        echo "$OPENCODE_RULES" | tee "$config_dir/AGENTS.md" > "/config/AGENTS.md"
-        echo "[INFO] OpenCode rules: custom → /config/AGENTS.md + $config_dir/AGENTS.md"
+        echo "$OPENCODE_RULES" > "$config_dir/AGENTS.md"
+        echo "[INFO] OpenCode rules: custom → $config_dir/AGENTS.md"
     else
-        write_default_agents_md | tee "$config_dir/AGENTS.md" > "/config/AGENTS.md"
-        echo "[INFO] OpenCode rules: built-in defaults → /config/AGENTS.md + $config_dir/AGENTS.md"
+        write_default_agents_md > "$config_dir/AGENTS.md"
+        echo "[INFO] OpenCode rules: built-in defaults → $config_dir/AGENTS.md"
     fi
 
     # ── System prompt ──────────────────────────────────────────
@@ -482,8 +482,8 @@ setup_opencode_config() {
     fi
 
     # ── opencode.json ──────────────────────────────────────────
-    # Generated in BOTH global config dir AND workspace root so
-    # OpenCode finds it regardless of CWD.
+    # Only in the add-on's own config dir. Writing a copy into the workspace
+    # (/config) broke the OpenCode 2 add-on, which also reads that path.
     local instructions_json="[\"$config_dir/system-prompt.md\""
     if [ -n "$OPENCODE_INSTRUCTIONS" ]; then
         instructions_json="$instructions_json,\"$config_dir/custom-instructions.md\""
@@ -495,9 +495,7 @@ setup_opencode_config() {
   "instructions": $instructions_json
 }
 JSONEOF
-    # Also write to workspace root (/config) for project-level discovery
-    cp "$config_dir/opencode.json" "/config/opencode.json" 2>/dev/null || true
-    echo "[INFO] OpenCode config: $config_dir/opencode.json + /config/opencode.json"
+    echo "[INFO] OpenCode config: $config_dir/opencode.json (workspace left untouched)"
 }
 
 setup_opencode_config

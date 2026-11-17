@@ -36,7 +36,7 @@ Inside Home Assistant that link points at `127.0.0.1` in the container, so the b
 
 Migration looks for the Terminal add-on data directory (`ha-opencode`, not `ha-opencode-serve`) under the Supervisor data path, usually `/mnt/data/supervisor/addons/data/ha-opencode`. It copies `opencode-local` (the SQLite database and `auth.json`), `opencode`, `opencode-workspace`, and `opencode-cache`. Files that already exist in this add-on are left alone. A marker `/data/.v1-session-migration.json` stops a second copy. Delete that file and restart to scan again. OpenCode 2 imports legacy rows when it opens the copied database.
 
-Both add-ons write `/config/AGENTS.md` when they start. The one that started last owns that file. Session databases stay separate.
+Separate add-ons, separate configs: each one keeps `AGENTS.md`, `system-prompt.md` and `opencode.json` in its own `~/.config/opencode` volume (from 2.1.1 / 0.1.26). Neither add-on writes into `/config`, so the last one started can no longer change the other's rules or break its startup. Session databases stay separate too.
 
 ## Persistence
 

@@ -1,9 +1,10 @@
 # Changelog – ha-opencode-serve
 
-## [2.1.0] – 2026-11-17
+## [2.1.1] – 2026-11-17
 
 ### Fixed
-- The legacy **OpenCode Terminal** add-on starts again. Both add-ons share `/config`, and this one used to copy its OpenCode 2 config with the v2-only `permissions` key into `/config/opencode.json`. OpenCode 1.17 (the terminal add-on) rejected that file with `Configuration is invalid … Unrecognized key: permissions` and exited. Auto-approve now stays in this add-on's own `~/.config/opencode/opencode.json`; the workspace copy contains only instructions/model, which both OpenCode 1 and 2 accept.
+- The add-on no longer writes `AGENTS.md` or `opencode.json` into the workspace (`/config`). Two add-ons shared those files, so the one that started last owned them; OpenCode 2 also copied its v2-only `permissions` key there, and the legacy **OpenCode Terminal** add-on (OpenCode 1.17) then failed with `Configuration is invalid … Unrecognized key: permissions`. Auto-approve and rules now stay in this add-on's own `~/.config/opencode/`, which both OpenCode versions read.
+- 2.1.0 was prepared but never installed; this entry replaces it.
 
 ## [2.0.9] – 2026-11-08
 

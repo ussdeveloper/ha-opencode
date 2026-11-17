@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.26] – 2026-11-17
+
+### Fixed
+- The add-on no longer writes `AGENTS.md` or `opencode.json` into `/config`. Those files are shared with the OpenCode 2 add-on, so the one that started last owned them, and an OpenCode 2 config there made this add-on exit with `Configuration is invalid … Unrecognized key: permissions`. Both files now live only in this add-on's own `~/.config/opencode` volume.
+
 ## [0.1.25] – 2026-07-08
 
 ### Added

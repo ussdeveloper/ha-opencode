@@ -214,10 +214,15 @@ setup_opencode_config() {
     local config_dir="/root/.config/opencode"
     mkdir -p "$config_dir"
 
+    # Rules live only in this add-on's own config dir (OpenCode reads
+    # ~/.config/opencode/AGENTS.md automatically). Never write them into the
+    # workspace: /config is shared with the legacy OpenCode Terminal add-on,
+    # and two add-ons overwriting the same AGENTS.md on every start makes the
+    # rules depend on which one started last.
     if [ -n "$OPENCODE_RULES" ]; then
-        printf '%s\n' "$OPENCODE_RULES" | tee "$config_dir/AGENTS.md" > "$OPENCODE_WORKSPACE/AGENTS.md"
+        printf '%s\n' "$OPENCODE_RULES" > "$config_dir/AGENTS.md"
     else
-        write_default_rules | tee "$config_dir/AGENTS.md" > "$OPENCODE_WORKSPACE/AGENTS.md"
+        write_default_rules > "$config_dir/AGENTS.md"
     fi
 
     if [ -n "$OPENCODE_SYSTEM_PROMPT" ]; then
@@ -251,24 +256,12 @@ setup_opencode_config() {
         + (if $auto then {permissions: [{action: "*", resource: "*", effect: "allow"}]} else {} end)' \
         > "$config_dir/opencode.json"
 
-    # Project-level copy for the workspace. OpenCode 2 already reads the global
-    # config above, so this file only needs the instructions (and model).
-    # It must stay parseable by OpenCode v1 too: the legacy "OpenCode Terminal"
-    # add-on (ha-opencode) shares /config and fails to start when it finds
-    # v2-only keys such as "permissions" (Configuration is invalid ->
-    # Unrecognized key: permissions).
-    jq -n \
-        --arg prompt "$config_dir/system-prompt.md" \
-        --arg extra "$extra" \
-        --arg model "$OPENCODE_MODEL" \
-        '{
-            "$schema": "https://opencode.ai/config.json",
-            autoupdate: false,
-            instructions: ([$prompt] + (if $extra != "" then [$extra] else [] end))
-        }
-        + (if $model != "" then {model: $model} else {} end)' \
-        > "$OPENCODE_WORKSPACE/opencode.json"
-    echo "[INFO] OpenCode config written to $config_dir (v2) and $OPENCODE_WORKSPACE (v1-compatible)"
+    # Nothing is written into the workspace on purpose. OpenCode 2 merges this
+    # global config with whatever the project provides, and the legacy add-on
+    # shares /config: copying the v2 config there (it used to carry the
+    # v2-only "permissions" key) made OpenCode 1 fail with
+    # "Configuration is invalid … Unrecognized key: permissions".
+    echo "[INFO] OpenCode config written to $config_dir (workspace left untouched)"
 }
 setup_opencode_config
 
